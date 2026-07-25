@@ -13,6 +13,7 @@ interface PageState {
   workspace: Workspace | null;
   pages: PageTreeItem[];
   activePageId: string | null;
+  expandedIds: Set<string>;
 
   setWorkspace: (workspace: Workspace | null) => void;
   setPages: (pages: PageTreeItem[]) => void;
@@ -20,12 +21,15 @@ interface PageState {
   updatePage: (id: string, updates: Partial<PageTreeItem>) => void;
   removePage: (id: string) => void;
   setActivePageId: (id: string | null) => void;
+  toggleExpanded: (id: string) => void;
+  expandPage: (id: string) => void;
 }
 
 export const usePageStore = create<PageState>((set) => ({
   workspace: null,
   pages: [],
   activePageId: null,
+  expandedIds: new Set<string>(),
 
   setWorkspace: (workspace) => set({ workspace }),
 
@@ -48,4 +52,22 @@ export const usePageStore = create<PageState>((set) => ({
     })),
 
   setActivePageId: (id) => set({ activePageId: id }),
+
+  toggleExpanded: (id) =>
+    set((state) => {
+      const next = new Set(state.expandedIds);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return { expandedIds: next };
+    }),
+
+  expandPage: (id) =>
+    set((state) => {
+      const next = new Set(state.expandedIds);
+      next.add(id);
+      return { expandedIds: next };
+    }),
 }));

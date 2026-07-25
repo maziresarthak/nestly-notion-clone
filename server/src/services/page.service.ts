@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma.js';
 import { AppError } from '../lib/AppError.js';
+import { generateKeyBetween } from 'fractional-indexing';
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -61,6 +62,53 @@ async function computeBreadcrumb(pageId: string): Promise<Array<{ id: string; ti
 
   // Reverse so it goes root → current
   return breadcrumb.reverse();
+}
+
+/**
+ * Check if `targetId` is a descendant of `pageId` (cycle detection).
+ */
+async function isDescendantOf(targetId: string, pageId: string): Promise<boolean> {
+  let currentId: string | null = targetId;
+  let depth = 0;
+
+  while (currentId && depth < 50) {
+    if (currentId === pageId) return true;
+
+    const page: { parentId: string | null } | null = await prisma.page.findUnique({
+      where: { id: currentId },
+      select: { parentId: true },
+    });
+    if (!page) break;
+
+    currentId = page.parentId;
+    depth++;
+  }
+
+  return false;
+}
+
+/**
+ * Compute a fractional sortOrder to place a new item at the end of siblings.
+ */
+async function computeSortOrderAtEnd(workspaceId: string, parentId: string | null): Promise<string> {
+  const lastSibling = await prisma.page.findFirst({
+    where: {
+      workspaceId,
+      parentId,
+      isDeleted: false,
+    },
+    orderBy: { sortOrder: 'desc' },
+    select: { sortOrder: true },
+  });
+
+  return generateKeyBetween(lastSibling?.sortOrder || null, null);
+}
+
+/**
+ * Compute a fractional sortOrder to place an item between two siblings.
+ */
+export function computeSortOrderBetween(before: string | null, after: string | null): string {
+  return generateKeyBetween(before, after);
 }
 
 // ─── Service Methods ─────────────────────────────────────────
@@ -153,23 +201,8 @@ export async function create(
     }
   }
 
-  // Compute sortOrder: find the last sibling and place after it
-  const lastSibling = await prisma.page.findFirst({
-    where: {
-      workspaceId,
-      parentId: data.parentId || null,
-      isDeleted: false,
-    },
-    orderBy: { sortOrder: 'desc' },
-    select: { sortOrder: true },
-  });
-
-  // Simple sortOrder: increment last character or append
-  let sortOrder = 'a0';
-  if (lastSibling) {
-    // Simple increment strategy for v1
-    sortOrder = lastSibling.sortOrder + 'V';
-  }
+  // Compute sortOrder using fractional indexing — placed at the end of siblings
+  const sortOrder = await computeSortOrderAtEnd(workspaceId, data.parentId || null);
 
   const page = await prisma.page.create({
     data: {
@@ -217,17 +250,24 @@ export async function update(
     throw new AppError(422, 'INVALID_DATE_RANGE', 'End date must be after start date');
   }
 
-  // If re-parenting, verify new parent belongs to same workspace
+  // If re-parenting, verify new parent belongs to same workspace and is not a descendant
   if (data.parentId !== undefined && data.parentId !== null) {
+    // Can't parent to self
+    if (data.parentId === pageId) {
+      throw new AppError(422, 'CIRCULAR_PARENT', 'Cannot set page as its own parent');
+    }
+
     const newParent = await prisma.page.findUnique({
       where: { id: data.parentId },
     });
     if (!newParent || newParent.workspaceId !== page.workspaceId || newParent.isDeleted) {
       throw new AppError(404, 'PARENT_NOT_FOUND', 'Parent page not found');
     }
-    // Prevent circular: can't parent to self or own descendant
-    if (data.parentId === pageId) {
-      throw new AppError(422, 'CIRCULAR_PARENT', 'Cannot set page as its own parent');
+
+    // Check for cycles: data.parentId can't be a descendant of pageId
+    const isCyclic = await isDescendantOf(data.parentId, pageId);
+    if (isCyclic) {
+      throw new AppError(422, 'CIRCULAR_PARENT', 'Cannot move a page under one of its own descendants');
     }
   }
 

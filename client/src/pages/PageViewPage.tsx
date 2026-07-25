@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { usePageStore } from '../stores/pageStore';
 import * as pagesApi from '../api/pages';
 import type { PageFull } from '../api/pages';
 import PageHeader from '../components/pages/PageHeader';
+import PageBreadcrumb from '../components/pages/PageBreadcrumb';
 
 export default function PageViewPage() {
   const { pageId } = useParams<{ pageId: string }>();
   const workspace = usePageStore((s) => s.workspace);
   const setActivePageId = usePageStore((s) => s.setActivePageId);
+  const addPage = usePageStore((s) => s.addPage);
+  const expandPage = usePageStore((s) => s.expandPage);
   const [page, setPage] = useState<PageFull | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +40,39 @@ export default function PageViewPage() {
       setActivePageId(null);
     };
   }, [pageId, workspace?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Create sub-page from page view ─────────────
+  const handleCreateSubPage = async () => {
+    if (!workspace || !page) return;
+    try {
+      const newPage = await pagesApi.createPage(workspace.id, {
+        parentId: page.id,
+      });
+      addPage({
+        id: newPage.id,
+        parentId: newPage.parentId,
+        title: newPage.title,
+        icon: newPage.icon,
+        sortOrder: newPage.sortOrder,
+        startDate: null,
+        endDate: null,
+        hasChildren: false,
+      });
+      expandPage(page.id);
+      setActivePageId(newPage.id);
+      // Navigate by updating URL
+      window.history.pushState(null, '', `/page/${newPage.id}`);
+      // Reload the page component
+      setPage(null);
+      setLoading(true);
+      const data = await pagesApi.getPage(workspace.id, newPage.id);
+      setPage(data);
+      setLoading(false);
+      toast.success('Sub-page created');
+    } catch {
+      toast.error('Failed to create sub-page');
+    }
+  };
 
   if (loading) {
     return (
@@ -92,33 +129,7 @@ export default function PageViewPage() {
         padding: '60px 24px 120px',
       }}
     >
-      {/* Breadcrumb */}
-      {page.breadcrumb && page.breadcrumb.length > 1 && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            marginBottom: '24px',
-            fontSize: '13px',
-            color: 'var(--text-muted)',
-          }}
-        >
-          {page.breadcrumb.map((crumb, i) => (
-            <span key={crumb.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              {i > 0 && <span style={{ margin: '0 2px' }}>/</span>}
-              <span>{crumb.icon || '📄'}</span>
-              <span
-                style={{
-                  color: i === page.breadcrumb.length - 1 ? 'var(--text-primary)' : 'var(--text-muted)',
-                }}
-              >
-                {crumb.title}
-              </span>
-            </span>
-          ))}
-        </div>
-      )}
+      <PageBreadcrumb breadcrumb={page.breadcrumb} />
 
       <PageHeader
         pageId={page.id}
@@ -126,6 +137,35 @@ export default function PageViewPage() {
         initialTitle={page.title}
         initialIcon={page.icon}
       />
+
+      {/* Add sub-page button */}
+      <button
+        onClick={handleCreateSubPage}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '8px 14px',
+          fontSize: '13px',
+          color: 'var(--text-muted)',
+          background: 'none',
+          border: '1px dashed var(--border-default)',
+          borderRadius: 'var(--radius-sm)',
+          cursor: 'pointer',
+          transition: 'var(--transition-fast)',
+          marginBottom: '24px',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = 'var(--accent-primary)';
+          e.currentTarget.style.color = 'var(--accent-primary)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = 'var(--border-default)';
+          e.currentTarget.style.color = 'var(--text-muted)';
+        }}
+      >
+        <span>+</span> Add sub-page
+      </button>
 
       {/* Editor placeholder */}
       <div

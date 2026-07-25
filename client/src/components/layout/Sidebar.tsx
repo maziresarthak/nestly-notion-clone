@@ -1,36 +1,75 @@
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import {
+  DndContext,
+  closestCenter,
+  DragOverlay,
+  type DragStartEvent,
+  type DragEndEvent,
+  type DragOverEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { generateKeyBetween } from 'fractional-indexing';
 import { useAuthStore } from '../../stores/authStore';
 import { usePageStore } from '../../stores/pageStore';
 import * as authApi from '../../api/auth';
 import * as pagesApi from '../../api/pages';
 import * as workspacesApi from '../../api/workspaces';
+import { buildTree, flattenTree, getDescendantIds } from '../../lib/utils';
+import PageTreeItem from '../pages/PageTreeItem';
 
 export default function Sidebar() {
   const navigate = useNavigate();
-  const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const workspace = usePageStore((s) => s.workspace);
   const pages = usePageStore((s) => s.pages);
-  const activePageId = usePageStore((s) => s.activePageId);
+  const expandedIds = usePageStore((s) => s.expandedIds);
   const setWorkspace = usePageStore((s) => s.setWorkspace);
   const addPage = usePageStore((s) => s.addPage);
-  const removePage = usePageStore((s) => s.removePage);
+  const setPages = usePageStore((s) => s.setPages);
   const setActivePageId = usePageStore((s) => s.setActivePageId);
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [workspaceName, setWorkspaceName] = useState('');
   const nameInputRef = useRef<HTMLInputElement>(null);
-  const [hoveredPageId, setHoveredPageId] = useState<string | null>(null);
+
+  // DnD state
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+
+  // Build the tree from flat pages
+  const tree = useMemo(() => buildTree(pages), [pages]);
+  const flatItems = useMemo(
+    () => flattenTree(tree, expandedIds),
+    [tree, expandedIds]
+  );
+  const sortableIds = useMemo(
+    () => flatItems.map((item) => item.node.page.id),
+    [flatItems]
+  );
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
+  );
 
   // Sync workspace name
   useEffect(() => {
     if (workspace) setWorkspaceName(workspace.name);
   }, [workspace?.name]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Focus input when editing
   useEffect(() => {
     if (isEditingName && nameInputRef.current) {
       nameInputRef.current.focus();
@@ -55,7 +94,7 @@ export default function Sidebar() {
     }
   };
 
-  // ─── Create page ───────────────────────────────────
+  // ─── Create root page ─────────────────────────────
   const handleCreatePage = async () => {
     if (!workspace) return;
     try {
@@ -77,46 +116,113 @@ export default function Sidebar() {
     }
   };
 
-  // ─── Delete page ───────────────────────────────────
-  const handleDeletePage = async (e: React.MouseEvent, pageId: string) => {
-    e.stopPropagation();
-    if (!workspace) return;
-    try {
-      await pagesApi.deletePage(workspace.id, pageId);
-      removePage(pageId);
-      toast.success('Page moved to trash');
-      // Navigate to another page or dashboard
-      if (activePageId === pageId) {
-        const remaining = pages.filter((p) => p.id !== pageId);
-        if (remaining.length > 0) {
-          navigate(`/page/${remaining[0].id}`);
-        } else {
-          navigate('/');
-        }
-      }
-    } catch {
-      toast.error('Failed to delete page');
-    }
-  };
-
   // ─── Logout ────────────────────────────────────────
   const handleLogout = async () => {
-    try {
-      await authApi.logout();
-    } catch { /* ignore */ }
+    try { await authApi.logout(); } catch { /* ignore */ }
     clearAuth();
     navigate('/login');
   };
 
-  // ─── Navigate to page ──────────────────────────────
-  const handlePageClick = (pageId: string) => {
-    setActivePageId(pageId);
-    navigate(`/page/${pageId}`);
-  };
+  // ─── DnD handlers ─────────────────────────────────
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  }, []);
 
-  // Determine active page from URL
-  const urlPageId = location.pathname.startsWith('/page/')
-    ? location.pathname.split('/page/')[1]
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    setOverId(event.over?.id as string || null);
+  }, []);
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+      setActiveId(null);
+      setOverId(null);
+
+      if (!over || active.id === over.id || !workspace) return;
+
+      const draggedId = active.id as string;
+      const targetId = over.id as string;
+
+      const draggedPage = pages.find((p) => p.id === draggedId);
+      const targetPage = pages.find((p) => p.id === targetId);
+      if (!draggedPage || !targetPage) return;
+
+      // Prevent dropping onto own descendants (cycle)
+      const descendantIds = getDescendantIds(draggedId, pages);
+      if (descendantIds.has(targetId)) {
+        toast.error('Cannot move a page under its own descendant');
+        return;
+      }
+
+      // Find position in the flat list
+      const draggedIdx = flatItems.findIndex((i) => i.node.page.id === draggedId);
+      const targetIdx = flatItems.findIndex((i) => i.node.page.id === targetId);
+      if (draggedIdx === -1 || targetIdx === -1) return;
+
+      const targetDepth = flatItems[targetIdx].depth;
+      const draggedDepth = flatItems[draggedIdx].depth;
+
+      // Determine the operation:
+      // If target is deeper than dragged or same level → re-parent to target's parent and reorder
+      // We'll implement simple logic: dropped item goes right after the target as a sibling
+      let newParentId = targetPage.parentId;
+      let siblings = pages
+        .filter((p) => p.parentId === newParentId && p.id !== draggedId && !pages.some(pp => pp.id === p.id && pp.id === draggedId))
+        .sort((a, b) => a.sortOrder.localeCompare(b.sortOrder));
+
+      // Find the target's position among its siblings
+      const targetSiblingIdx = siblings.findIndex((s) => s.id === targetId);
+
+      // Compute new sortOrder — place after the target among its siblings
+      let before: string | null = null;
+      let after: string | null = null;
+
+      if (targetSiblingIdx >= 0) {
+        // If dragging downward: place after target
+        if (draggedIdx < targetIdx) {
+          before = siblings[targetSiblingIdx]?.sortOrder || null;
+          after = siblings[targetSiblingIdx + 1]?.sortOrder || null;
+        } else {
+          // Dragging upward: place before target
+          before = siblings[targetSiblingIdx - 1]?.sortOrder || null;
+          after = siblings[targetSiblingIdx]?.sortOrder || null;
+        }
+      }
+
+      let newSortOrder: string;
+      try {
+        newSortOrder = generateKeyBetween(before, after);
+      } catch {
+        // Fallback: just use the target's sort order with a suffix
+        newSortOrder = (targetPage.sortOrder || 'a0') + 'V';
+      }
+
+      // Optimistic update
+      const updatedPages = pages.map((p) =>
+        p.id === draggedId
+          ? { ...p, parentId: newParentId, sortOrder: newSortOrder }
+          : p
+      );
+      setPages(updatedPages);
+
+      // Persist
+      try {
+        await pagesApi.updatePage(workspace.id, draggedId, {
+          parentId: newParentId,
+          sortOrder: newSortOrder,
+        });
+      } catch {
+        toast.error('Failed to move page');
+        // Revert
+        const freshPages = await pagesApi.getPages(workspace.id);
+        setPages(freshPages);
+      }
+    },
+    [workspace, pages, flatItems, setPages]
+  );
+
+  const draggedNode = activeId
+    ? flatItems.find((i) => i.node.page.id === activeId)
     : null;
 
   return (
@@ -234,12 +340,12 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* ─── Page List ────────────────────────────────── */}
+      {/* ─── Tree / Page List ────────────────────────── */}
       <div
         style={{
           flex: 1,
           overflow: 'auto',
-          padding: '4px 10px',
+          padding: '4px 6px',
         }}
       >
         {pages.length === 0 ? (
@@ -254,77 +360,60 @@ export default function Sidebar() {
             No pages yet. Click + to create one.
           </p>
         ) : (
-          pages.map((page) => {
-            const isActive = page.id === urlPageId;
-            const isHovered = page.id === hoveredPageId;
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+              {tree.map((rootNode) => (
+                <PageTreeItem key={rootNode.page.id} node={rootNode} depth={0} />
+              ))}
+            </SortableContext>
 
-            return (
-              <div
-                key={page.id}
-                onClick={() => handlePageClick(page.id)}
-                onMouseEnter={() => setHoveredPageId(page.id)}
-                onMouseLeave={() => setHoveredPageId(null)}
-                style={{
-                  padding: '6px 10px',
-                  fontSize: '13px',
-                  borderRadius: 'var(--radius-sm)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: isActive
-                    ? 'var(--accent-subtle)'
-                    : isHovered
-                    ? 'var(--bg-hover)'
-                    : 'transparent',
-                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  transition: 'var(--transition-fast)',
-                  marginBottom: '2px',
-                  position: 'relative',
-                }}
-              >
-                <span style={{ fontSize: '14px', flexShrink: 0 }}>
-                  {page.icon || '📄'}
-                </span>
-                <span
+            <DragOverlay>
+              {draggedNode && (
+                <div
                   style={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    flex: 1,
+                    padding: '4px 12px',
+                    fontSize: '13px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-elevated)',
+                    border: '1px solid var(--accent-primary)',
+                    boxShadow: 'var(--shadow-lg)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    color: 'var(--text-primary)',
+                    opacity: 0.9,
                   }}
                 >
-                  {page.title || 'Untitled'}
-                </span>
-
-                {/* Delete button on hover */}
-                {isHovered && (
-                  <button
-                    onClick={(e) => handleDeletePage(e, page.id)}
-                    title="Move to trash"
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      color: 'var(--text-muted)',
-                      padding: '2px 4px',
-                      borderRadius: 'var(--radius-sm)',
-                      lineHeight: 1,
-                      flexShrink: 0,
-                      transition: 'var(--transition-fast)',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--error)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-                  >
-                    🗑
-                  </button>
-                )}
-              </div>
-            );
-          })
+                  <span>{draggedNode.node.page.icon || '📄'}</span>
+                  <span>{draggedNode.node.page.title || 'Untitled'}</span>
+                </div>
+              )}
+            </DragOverlay>
+          </DndContext>
         )}
       </div>
+
+      {/* Drop indicator */}
+      {overId && activeId && overId !== activeId && (
+        <div
+          style={{
+            position: 'absolute',
+            left: '10px',
+            right: '10px',
+            height: '2px',
+            background: 'var(--accent-primary)',
+            borderRadius: '1px',
+            pointerEvents: 'none',
+            zIndex: 100,
+          }}
+        />
+      )}
 
       {/* ─── User Profile / Logout ─────────────────── */}
       <div
