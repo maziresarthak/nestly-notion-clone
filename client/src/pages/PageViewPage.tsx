@@ -1,14 +1,18 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useState, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { usePageStore } from '../stores/pageStore';
 import * as pagesApi from '../api/pages';
 import type { PageFull } from '../api/pages';
 import PageHeader from '../components/pages/PageHeader';
 import PageBreadcrumb from '../components/pages/PageBreadcrumb';
+import PageEditor from '../components/pages/PageEditor';
+
+type SaveStatus = 'idle' | 'saving' | 'saved';
 
 export default function PageViewPage() {
   const { pageId } = useParams<{ pageId: string }>();
+  const navigate = useNavigate();
   const workspace = usePageStore((s) => s.workspace);
   const setActivePageId = usePageStore((s) => s.setActivePageId);
   const addPage = usePageStore((s) => s.addPage);
@@ -16,6 +20,7 @@ export default function PageViewPage() {
   const [page, setPage] = useState<PageFull | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
 
   useEffect(() => {
     if (!pageId || !workspace) return;
@@ -41,6 +46,10 @@ export default function PageViewPage() {
     };
   }, [pageId, workspace?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleSaveStatusChange = useCallback((status: SaveStatus) => {
+    setSaveStatus(status);
+  }, []);
+
   // ─── Create sub-page from page view ─────────────
   const handleCreateSubPage = async () => {
     if (!workspace || !page) return;
@@ -59,15 +68,7 @@ export default function PageViewPage() {
         hasChildren: false,
       });
       expandPage(page.id);
-      setActivePageId(newPage.id);
-      // Navigate by updating URL
-      window.history.pushState(null, '', `/page/${newPage.id}`);
-      // Reload the page component
-      setPage(null);
-      setLoading(true);
-      const data = await pagesApi.getPage(workspace.id, newPage.id);
-      setPage(data);
-      setLoading(false);
+      navigate(`/page/${newPage.id}`);
       toast.success('Sub-page created');
     } catch {
       toast.error('Failed to create sub-page');
@@ -126,9 +127,61 @@ export default function PageViewPage() {
       style={{
         maxWidth: '720px',
         margin: '0 auto',
-        padding: '60px 24px 120px',
+        padding: '40px 24px 120px',
+        position: 'relative',
       }}
     >
+      {/* ─── Save Status Indicator ──────────────── */}
+      <div
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          padding: '8px 0',
+          marginBottom: '8px',
+        }}
+      >
+        {saveStatus !== 'idle' && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 12px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-default)',
+              fontSize: '12px',
+              color: saveStatus === 'saving' ? 'var(--text-muted)' : 'var(--success)',
+              transition: 'all 0.3s ease',
+            }}
+          >
+            {saveStatus === 'saving' ? (
+              <>
+                <div
+                  style={{
+                    width: '12px',
+                    height: '12px',
+                    border: '2px solid var(--border-default)',
+                    borderTopColor: 'var(--text-muted)',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }}
+                />
+                Saving…
+              </>
+            ) : (
+              <>
+                <span>✓</span>
+                Saved
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
       <PageBreadcrumb breadcrumb={page.breadcrumb} />
 
       <PageHeader
@@ -167,17 +220,14 @@ export default function PageViewPage() {
         <span>+</span> Add sub-page
       </button>
 
-      {/* Editor placeholder */}
-      <div
-        style={{
-          padding: '16px 0',
-          fontSize: '15px',
-          color: 'var(--text-muted)',
-          lineHeight: 1.8,
-        }}
-      >
-        <p>Start writing here… (Rich editor coming in Milestone 5)</p>
-      </div>
+      {/* ─── BlockNote Editor ──────────────────── */}
+      <PageEditor
+        key={page.id}
+        pageId={page.id}
+        workspaceId={page.workspaceId}
+        initialContent={page.content}
+        onSaveStatusChange={handleSaveStatusChange}
+      />
     </div>
   );
 }

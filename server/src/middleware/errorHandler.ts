@@ -23,6 +23,17 @@ export function errorHandler(
     return;
   }
 
+  // Payload too large (Express body-parser)
+  if ('type' in err && (err as Record<string, unknown>).type === 'entity.too.large') {
+    res.status(413).json({
+      error: {
+        code: 'PAYLOAD_TOO_LARGE',
+        message: 'Request body exceeds the maximum allowed size (1MB)',
+      },
+    });
+    return;
+  }
+
   // Unknown / unexpected error
   console.error('[Unhandled Error]', err);
   res.status(500).json({

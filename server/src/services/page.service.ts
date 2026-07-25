@@ -239,6 +239,11 @@ export async function update(
     throw new AppError(404, 'PAGE_NOT_FOUND', 'Page not found');
   }
 
+  // Validate content shape: must be an array (BlockNote document)
+  if (data.content !== undefined && !Array.isArray(data.content)) {
+    throw new AppError(422, 'INVALID_CONTENT', 'Content must be an array of blocks');
+  }
+
   // Validate date range if both are set
   const startDate = data.startDate !== undefined ? (data.startDate ? new Date(data.startDate) : null) : undefined;
   const endDate = data.endDate !== undefined ? (data.endDate ? new Date(data.endDate) : null) : undefined;
