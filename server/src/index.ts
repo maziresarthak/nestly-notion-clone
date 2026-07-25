@@ -7,6 +7,8 @@ import { env } from './lib/env.js';
 import healthRoutes from './routes/health.js';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/user.js';
+import workspaceRoutes from './routes/workspace.js';
+import pageRoutes from './routes/page.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { authLimiter, apiLimiter } from './middleware/rateLimiter.js';
 import { authGuard } from './middleware/authGuard.js';
@@ -31,6 +33,8 @@ app.use(cookieParser());
 app.use('/api/health', healthRoutes);
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', apiLimiter, authGuard, userRoutes);
+app.use('/api/workspaces', apiLimiter, authGuard, workspaceRoutes);
+app.use('/api/workspaces/:workspaceId/pages', apiLimiter, authGuard, pageRoutes);
 
 // ─── 404 catch-all ───────────────────────────────────────────
 app.use((_req, _res, next) => {

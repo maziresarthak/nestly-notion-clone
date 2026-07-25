@@ -49,5 +49,39 @@ model Workspace {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  pages Page[]
+
   @@index([ownerId])
+}
+
+// ─── PAGE ────────────────────────────────────────────────────────────
+model Page {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  parentId String?
+  parent   Page?   @relation("PageTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Page[]  @relation("PageTree")
+
+  title    String  @default("Untitled")
+  icon     String? // emoji string, e.g. "📄"
+  content  Json    @default("[]") // BlockNote document JSON array
+
+  // Ordering: fractional index string for drag-reorder (e.g. "a0", "a0V")
+  sortOrder String @default("a0")
+
+  // Page properties — date range
+  startDate DateTime?
+  endDate   DateTime?
+
+  isDeleted Boolean  @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId, parentId, isDeleted]) // Sidebar tree query
+  @@index([workspaceId, isDeleted])            // Trash listing
+  @@index([workspaceId, title])                // Title search
 }
