@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   DndContext,
-  closestCenter,
   DragOverlay,
   type DragStartEvent,
   type DragEndEvent,
@@ -11,11 +10,8 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  pointerWithin,
 } from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
 import { generateKeyBetween } from 'fractional-indexing';
 import { useAuthStore } from '../../stores/authStore';
 import { usePageStore } from '../../stores/pageStore';
@@ -24,6 +20,7 @@ import * as pagesApi from '../../api/pages';
 import * as workspacesApi from '../../api/workspaces';
 import { buildTree, flattenTree, getDescendantIds } from '../../lib/utils';
 import PageTreeItem from '../pages/PageTreeItem';
+import type { DropIndicator } from '../pages/PageTreeItem';
 
 export default function Sidebar() {
   const navigate = useNavigate();
@@ -41,9 +38,10 @@ export default function Sidebar() {
   const [workspaceName, setWorkspaceName] = useState('');
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  // DnD state
+  // DnD state — Notion style
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [overId, setOverId] = useState<string | null>(null);
+  const [dropIndicator, setDropIndicator] = useState<DropIndicator | null>(null);
+  const pointerYRef = useRef(0);
 
   // Build the tree from flat pages
   const tree = useMemo(() => buildTree(pages), [pages]);
@@ -51,17 +49,21 @@ export default function Sidebar() {
     () => flattenTree(tree, expandedIds),
     [tree, expandedIds]
   );
-  const sortableIds = useMemo(
-    () => flatItems.map((item) => item.node.page.id),
-    [flatItems]
-  );
 
-  // DnD sensors
+  // Track pointer position during drag
+  useEffect(() => {
+    if (!activeId) return;
+    const handler = (e: MouseEvent) => {
+      pointerYRef.current = e.clientY;
+    };
+    window.addEventListener('mousemove', handler);
+    return () => window.removeEventListener('mousemove', handler);
+  }, [activeId]);
+
+  // DnD sensors — 5px activation distance to distinguish click vs drag
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
+      activationConstraint: { distance: 5 },
     })
   );
 
@@ -123,78 +125,128 @@ export default function Sidebar() {
     navigate('/login');
   };
 
-  // ─── DnD handlers ─────────────────────────────────
+  // ─── DnD: drag start ──────────────────────────────
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(event.active.id as string);
   }, []);
 
-  const handleDragOver = useCallback((event: DragOverEvent) => {
-    setOverId(event.over?.id as string || null);
-  }, []);
+  // ─── DnD: drag over — compute drop indicator ─────
+  const handleDragOver = useCallback(
+    (event: DragOverEvent) => {
+      const { over } = event;
 
-  const handleDragEnd = useCallback(
-    async (event: DragEndEvent) => {
-      const { active, over } = event;
-      setActiveId(null);
-      setOverId(null);
+      if (!over || !activeId) {
+        setDropIndicator(null);
+        return;
+      }
 
-      if (!over || active.id === over.id || !workspace) return;
-
-      const draggedId = active.id as string;
       const targetId = over.id as string;
 
-      const draggedPage = pages.find((p) => p.id === draggedId);
-      const targetPage = pages.find((p) => p.id === targetId);
-      if (!draggedPage || !targetPage) return;
+      // Don't indicate drop on self
+      if (targetId === activeId) {
+        setDropIndicator(null);
+        return;
+      }
 
-      // Prevent dropping onto own descendants (cycle)
+      // Prevent dropping onto own descendants (cycle detection)
+      const descendantIds = getDescendantIds(activeId, pages);
+      if (descendantIds.has(targetId)) {
+        setDropIndicator(null);
+        return;
+      }
+
+      // Get the over element's DOM rect
+      const overElement = document.querySelector(`[data-page-id="${targetId}"]`);
+      if (!overElement) {
+        setDropIndicator(null);
+        return;
+      }
+
+      const rect = overElement.getBoundingClientRect();
+      const pointerY = pointerYRef.current;
+      const relativeY = pointerY - rect.top;
+      const height = rect.height;
+
+      // Top 30% → above, Bottom 30% → below, Middle 40% → inside (re-parent)
+      let position: 'above' | 'below' | 'inside';
+      if (relativeY < height * 0.3) {
+        position = 'above';
+      } else if (relativeY > height * 0.7) {
+        position = 'below';
+      } else {
+        position = 'inside';
+      }
+
+      setDropIndicator({ targetId, position });
+    },
+    [activeId, pages]
+  );
+
+  // ─── DnD: drag end — compute new parentId + sortOrder ─
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const draggedId = activeId;
+      const indicator = dropIndicator;
+
+      // Clear state immediately
+      setActiveId(null);
+      setDropIndicator(null);
+
+      if (!draggedId || !indicator || !workspace) return;
+
+      const { targetId, position } = indicator;
+      const targetPage = pages.find((p) => p.id === targetId);
+      if (!targetPage) return;
+
+      // Cycle detection: already blocked in handleDragOver, but double-check
       const descendantIds = getDescendantIds(draggedId, pages);
       if (descendantIds.has(targetId)) {
         toast.error('Cannot move a page under its own descendant');
         return;
       }
 
-      // Find position in the flat list
-      const draggedIdx = flatItems.findIndex((i) => i.node.page.id === draggedId);
-      const targetIdx = flatItems.findIndex((i) => i.node.page.id === targetId);
-      if (draggedIdx === -1 || targetIdx === -1) return;
-
-      const targetDepth = flatItems[targetIdx].depth;
-      const draggedDepth = flatItems[draggedIdx].depth;
-
-      // Determine the operation:
-      // If target is deeper than dragged or same level → re-parent to target's parent and reorder
-      // We'll implement simple logic: dropped item goes right after the target as a sibling
-      let newParentId = targetPage.parentId;
-      let siblings = pages
-        .filter((p) => p.parentId === newParentId && p.id !== draggedId && !pages.some(pp => pp.id === p.id && pp.id === draggedId))
-        .sort((a, b) => a.sortOrder.localeCompare(b.sortOrder));
-
-      // Find the target's position among its siblings
-      const targetSiblingIdx = siblings.findIndex((s) => s.id === targetId);
-
-      // Compute new sortOrder — place after the target among its siblings
-      let before: string | null = null;
-      let after: string | null = null;
-
-      if (targetSiblingIdx >= 0) {
-        // If dragging downward: place after target
-        if (draggedIdx < targetIdx) {
-          before = siblings[targetSiblingIdx]?.sortOrder || null;
-          after = siblings[targetSiblingIdx + 1]?.sortOrder || null;
-        } else {
-          // Dragging upward: place before target
-          before = siblings[targetSiblingIdx - 1]?.sortOrder || null;
-          after = siblings[targetSiblingIdx]?.sortOrder || null;
-        }
-      }
-
+      let newParentId: string | null;
       let newSortOrder: string;
-      try {
-        newSortOrder = generateKeyBetween(before, after);
-      } catch {
-        // Fallback: just use the target's sort order with a suffix
-        newSortOrder = (targetPage.sortOrder || 'a0') + 'V';
+
+      if (position === 'inside') {
+        // Re-parent: make dragged a child of target (first child)
+        newParentId = targetId;
+        const targetChildren = pages
+          .filter((p) => p.parentId === targetId && p.id !== draggedId)
+          .sort((a, b) => a.sortOrder.localeCompare(b.sortOrder));
+
+        try {
+          newSortOrder = generateKeyBetween(null, targetChildren[0]?.sortOrder || null);
+        } catch {
+          newSortOrder = 'a0';
+        }
+      } else {
+        // Reorder as sibling: place above or below target
+        newParentId = targetPage.parentId;
+        const siblings = pages
+          .filter((p) => p.parentId === newParentId && p.id !== draggedId)
+          .sort((a, b) => a.sortOrder.localeCompare(b.sortOrder));
+
+        const targetIdx = siblings.findIndex((s) => s.id === targetId);
+
+        let before: string | null = null;
+        let after: string | null = null;
+
+        if (position === 'above') {
+          // Place before target
+          before = targetIdx > 0 ? siblings[targetIdx - 1].sortOrder : null;
+          after = siblings[targetIdx]?.sortOrder || null;
+        } else {
+          // 'below': place after target
+          before = siblings[targetIdx]?.sortOrder || null;
+          after = targetIdx < siblings.length - 1 ? siblings[targetIdx + 1].sortOrder : null;
+        }
+
+        try {
+          newSortOrder = generateKeyBetween(before, after);
+        } catch {
+          newSortOrder = (targetPage.sortOrder || 'a0') + 'V';
+        }
       }
 
       // Optimistic update
@@ -213,17 +265,22 @@ export default function Sidebar() {
         });
       } catch {
         toast.error('Failed to move page');
-        // Revert
+        // Revert — re-fetch from server
         const freshPages = await pagesApi.getPages(workspace.id);
         setPages(freshPages);
       }
     },
-    [workspace, pages, flatItems, setPages]
+    [activeId, dropIndicator, workspace, pages, setPages]
   );
 
-  const draggedNode = activeId
-    ? flatItems.find((i) => i.node.page.id === activeId)
-    : null;
+  // ─── DnD: drag cancel ─────────────────────────────
+  const handleDragCancel = useCallback(() => {
+    setActiveId(null);
+    setDropIndicator(null);
+  }, []);
+
+  // Get the active item for the drag overlay
+  const activePage = activeId ? pages.find((p) => p.id === activeId) : null;
 
   return (
     <aside
@@ -362,19 +419,25 @@ export default function Sidebar() {
         ) : (
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCenter}
+            collisionDetection={pointerWithin}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
           >
-            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-              {tree.map((rootNode) => (
-                <PageTreeItem key={rootNode.page.id} node={rootNode} depth={0} />
-              ))}
-            </SortableContext>
+            {tree.map((rootNode) => (
+              <PageTreeItem
+                key={rootNode.page.id}
+                node={rootNode}
+                depth={0}
+                activeId={activeId}
+                dropIndicator={dropIndicator}
+              />
+            ))}
 
-            <DragOverlay>
-              {draggedNode && (
+            {/* Floating drag overlay — follows cursor */}
+            <DragOverlay dropAnimation={null}>
+              {activePage && (
                 <div
                   style={{
                     padding: '4px 12px',
@@ -382,38 +445,32 @@ export default function Sidebar() {
                     borderRadius: 'var(--radius-sm)',
                     background: 'var(--bg-elevated)',
                     border: '1px solid var(--accent-primary)',
-                    boxShadow: 'var(--shadow-lg)',
+                    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
                     color: 'var(--text-primary)',
                     opacity: 0.9,
+                    width: '200px',
+                    pointerEvents: 'none',
                   }}
                 >
-                  <span>{draggedNode.node.page.icon || '📄'}</span>
-                  <span>{draggedNode.node.page.title || 'Untitled'}</span>
+                  <span>{activePage.icon || '📄'}</span>
+                  <span
+                    style={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {activePage.title || 'Untitled'}
+                  </span>
                 </div>
               )}
             </DragOverlay>
           </DndContext>
         )}
       </div>
-
-      {/* Drop indicator */}
-      {overId && activeId && overId !== activeId && (
-        <div
-          style={{
-            position: 'absolute',
-            left: '10px',
-            right: '10px',
-            height: '2px',
-            background: 'var(--accent-primary)',
-            borderRadius: '1px',
-            pointerEvents: 'none',
-            zIndex: 100,
-          }}
-        />
-      )}
 
       {/* ─── User Profile / Logout ─────────────────── */}
       <div

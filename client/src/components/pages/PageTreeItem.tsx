@@ -1,18 +1,24 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { usePageStore } from '../../stores/pageStore';
 import * as pagesApi from '../../api/pages';
 import type { TreeNode } from '../../lib/utils';
 
+export interface DropIndicator {
+  targetId: string;
+  position: 'above' | 'below' | 'inside';
+}
+
 interface PageTreeItemProps {
   node: TreeNode;
   depth: number;
+  activeId: string | null;
+  dropIndicator: DropIndicator | null;
 }
 
-export default function PageTreeItem({ node, depth }: PageTreeItemProps) {
+export default function PageTreeItem({ node, depth, activeId, dropIndicator }: PageTreeItemProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const workspace = usePageStore((s) => s.workspace);
@@ -33,28 +39,35 @@ export default function PageTreeItem({ node, depth }: PageTreeItemProps) {
     ? location.pathname.split('/page/')[1]
     : null;
   const isActive = page.id === urlPageId;
+  const isDragging = activeId === page.id;
 
-  // DnD sortable
+  // Is this item the drop target for the indicator?
+  const isDropAbove = dropIndicator?.targetId === page.id && dropIndicator.position === 'above';
+  const isDropBelow = dropIndicator?.targetId === page.id && dropIndicator.position === 'below';
+  const isDropInside = dropIndicator?.targetId === page.id && dropIndicator.position === 'inside';
+
+  // ─── DnD: draggable ─────────────────────────────
   const {
     attributes,
     listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+    setNodeRef: setDragRef,
+  } = useDraggable({
     id: page.id,
-    data: {
-      type: 'page',
-      page: page,
-      depth,
-    },
+    data: { type: 'page', page, depth },
   });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.4 : 1,
+  // ─── DnD: droppable ─────────────────────────────
+  const {
+    setNodeRef: setDropRef,
+  } = useDroppable({
+    id: page.id,
+    data: { type: 'page', page, depth },
+  });
+
+  // Merge refs
+  const setNodeRef = (el: HTMLElement | null) => {
+    setDragRef(el);
+    setDropRef(el);
   };
 
   const handleClick = () => {
@@ -84,7 +97,6 @@ export default function PageTreeItem({ node, depth }: PageTreeItemProps) {
         endDate: null,
         hasChildren: false,
       });
-      // Auto-expand parent
       expandPage(page.id);
       setActivePageId(newPage.id);
       navigate(`/page/${newPage.id}`);
@@ -113,13 +125,32 @@ export default function PageTreeItem({ node, depth }: PageTreeItemProps) {
     }
   };
 
+  const indentPx = 12 + depth * 16;
+
   return (
     <>
+      {/* Drop indicator line: ABOVE */}
+      {isDropAbove && (
+        <div
+          style={{
+            height: '2px',
+            background: 'var(--accent-primary)',
+            borderRadius: '1px',
+            marginLeft: `${indentPx}px`,
+            marginRight: '8px',
+            marginBottom: '-1px',
+            position: 'relative',
+            zIndex: 20,
+          }}
+        />
+      )}
+
+      {/* The page item */}
       <div
         ref={setNodeRef}
+        data-page-id={page.id}
         style={{
-          ...style,
-          paddingLeft: `${12 + depth * 16}px`,
+          paddingLeft: `${indentPx}px`,
           paddingRight: '8px',
           paddingTop: '4px',
           paddingBottom: '4px',
@@ -129,9 +160,11 @@ export default function PageTreeItem({ node, depth }: PageTreeItemProps) {
           display: 'flex',
           alignItems: 'center',
           gap: '4px',
-          background: isActive
+          background: isDropInside
+            ? 'rgba(139, 92, 246, 0.15)'
+            : isActive
             ? 'var(--accent-subtle)'
-            : isHovered
+            : isHovered && !activeId
             ? 'var(--bg-hover)'
             : 'transparent',
           color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
@@ -139,6 +172,9 @@ export default function PageTreeItem({ node, depth }: PageTreeItemProps) {
           marginBottom: '1px',
           position: 'relative',
           userSelect: 'none',
+          opacity: isDragging ? 0.4 : 1,
+          outline: isDropInside ? '2px solid var(--accent-primary)' : 'none',
+          outlineOffset: '-2px',
         }}
         onClick={handleClick}
         onMouseEnter={() => setIsHovered(true)}
@@ -162,7 +198,7 @@ export default function PageTreeItem({ node, depth }: PageTreeItemProps) {
             fontSize: '10px',
             flexShrink: 0,
             borderRadius: '2px',
-            transition: 'var(--transition-fast)',
+            transition: 'transform 0.15s ease',
             transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
             visibility: hasChildren ? 'visible' : 'hidden',
           }}
@@ -190,15 +226,9 @@ export default function PageTreeItem({ node, depth }: PageTreeItemProps) {
           {page.title || 'Untitled'}
         </span>
 
-        {/* Hover actions */}
-        {isHovered && (
-          <div
-            style={{
-              display: 'flex',
-              gap: '2px',
-              flexShrink: 0,
-            }}
-          >
+        {/* Hover actions (hide during drag) */}
+        {isHovered && !activeId && (
+          <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
             <button
               onClick={handleCreateSubPage}
               title="Add sub-page"
@@ -257,11 +287,33 @@ export default function PageTreeItem({ node, depth }: PageTreeItemProps) {
         )}
       </div>
 
+      {/* Drop indicator line: BELOW (only if no expanded children follow) */}
+      {isDropBelow && (
+        <div
+          style={{
+            height: '2px',
+            background: 'var(--accent-primary)',
+            borderRadius: '1px',
+            marginLeft: `${indentPx}px`,
+            marginRight: '8px',
+            marginTop: '-1px',
+            position: 'relative',
+            zIndex: 20,
+          }}
+        />
+      )}
+
       {/* Render children if expanded */}
       {hasChildren && isExpanded && (
         <div>
           {node.children.map((child) => (
-            <PageTreeItem key={child.page.id} node={child} depth={depth + 1} />
+            <PageTreeItem
+              key={child.page.id}
+              node={child}
+              depth={depth + 1}
+              activeId={activeId}
+              dropIndicator={dropIndicator}
+            />
           ))}
         </div>
       )}

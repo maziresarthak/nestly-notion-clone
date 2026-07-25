@@ -1,40 +1,93 @@
-import { useCallback, useState, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { useCreateBlockNote } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
 import type { Block } from '@blocknote/core';
 import '@blocknote/mantine/style.css';
 import * as pagesApi from '../../api/pages';
 
-type SaveStatus = 'idle' | 'saving' | 'saved';
+/**
+ * Visual state machine for the save indicator:
+ *   idle → pending → saving → saved → idle
+ *
+ * - idle:    nothing shown
+ * - pending: PATCH has been fired, waiting 350ms before showing "Saving…"
+ *            (avoids flash for near-instant saves)
+ * - saving:  "Saving…" is visible, enforces a minimum 700ms display time
+ * - saved:   "Saved ✓" is visible, holds for 2s then fades to idle
+ */
+export type VisualSaveState = 'idle' | 'pending' | 'saving' | 'saved';
 
 interface PageEditorProps {
   pageId: string;
   workspaceId: string;
   initialContent: unknown;
-  onSaveStatusChange?: (status: SaveStatus) => void;
+  onVisualStateChange?: (state: VisualSaveState) => void;
 }
 
-/**
- * BlockNote editor wrapper with debounced autosave.
- * Key prop on pageId ensures re-initialization when navigating between pages.
- */
 export default function PageEditor({
   pageId,
   workspaceId,
   initialContent,
-  onSaveStatusChange,
+  onVisualStateChange,
 }: PageEditorProps) {
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const savedIndicatorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [, setStatus] = useState<SaveStatus>('idle');
+  const saveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const minSavingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pageIdRef = useRef(pageId);
+  const visualStateRef = useRef<VisualSaveState>('idle');
+  const savingShownAtRef = useRef(0);
+  const patchCompletedRef = useRef(false);
 
-  // Keep pageId ref in sync
   useEffect(() => {
     pageIdRef.current = pageId;
   }, [pageId]);
 
-  // Parse initial content: if it's a non-empty array, use it; otherwise let BlockNote default
+  // Helper: transition visual state
+  const setVisualState = useCallback(
+    (state: VisualSaveState) => {
+      visualStateRef.current = state;
+      onVisualStateChange?.(state);
+    },
+    [onVisualStateChange]
+  );
+
+  // Helper: transition to 'saved' state with 2s hold
+  const transitionToSaved = useCallback(() => {
+    setVisualState('saved');
+
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => {
+      setVisualState('idle');
+    }, 2000);
+  }, [setVisualState]);
+
+  // Helper: called when PATCH response arrives
+  const onPatchComplete = useCallback(() => {
+    const currentState = visualStateRef.current;
+
+    if (currentState === 'pending') {
+      // PATCH finished within 350ms — skip "Saving…", go straight to "Saved ✓"
+      if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+      transitionToSaved();
+    } else if (currentState === 'saving') {
+      // "Saving…" is visible — enforce minimum 700ms display
+      const elapsed = Date.now() - savingShownAtRef.current;
+      const remaining = Math.max(0, 700 - elapsed);
+
+      if (remaining === 0) {
+        transitionToSaved();
+      } else {
+        if (minSavingTimerRef.current) clearTimeout(minSavingTimerRef.current);
+        minSavingTimerRef.current = setTimeout(() => {
+          transitionToSaved();
+        }, remaining);
+      }
+    }
+    // If idle (cancelled/navigated away), do nothing
+  }, [transitionToSaved]);
+
+  // Parse initial content
   const parsedContent = (() => {
     if (Array.isArray(initialContent) && initialContent.length > 0) {
       return initialContent as Block[];
@@ -46,45 +99,49 @@ export default function PageEditor({
     initialContent: parsedContent,
   });
 
-  // Debounced save callback
+  // Debounced save with paced visual state machine
   const handleChange = useCallback(() => {
-    // Clear any existing debounce timer
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
+    // Clear existing debounce
+    if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
 
-    saveTimeoutRef.current = setTimeout(async () => {
+    saveDebounceRef.current = setTimeout(async () => {
       const content = editor.document;
       const currentPageId = pageIdRef.current;
 
-      setStatus('saving');
-      onSaveStatusChange?.('saving');
+      // ── Step 1: Enter 'pending' (not visible yet) ──
+      setVisualState('pending');
+      patchCompletedRef.current = false;
 
+      // ── Step 2: Start 350ms timer to show "Saving…" ──
+      if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+      pendingTimerRef.current = setTimeout(() => {
+        // Only transition if we're still pending (PATCH not done yet)
+        if (visualStateRef.current === 'pending') {
+          savingShownAtRef.current = Date.now();
+          setVisualState('saving');
+        }
+      }, 350);
+
+      // ── Step 3: Fire actual PATCH ──
       try {
         await pagesApi.updatePage(workspaceId, currentPageId, { content });
-        setStatus('saved');
-        onSaveStatusChange?.('saved');
-
-        // Auto-hide "Saved" after 2 seconds
-        if (savedIndicatorRef.current) {
-          clearTimeout(savedIndicatorRef.current);
-        }
-        savedIndicatorRef.current = setTimeout(() => {
-          setStatus('idle');
-          onSaveStatusChange?.('idle');
-        }, 2000);
+        onPatchComplete();
       } catch {
-        setStatus('idle');
-        onSaveStatusChange?.('idle');
+        // On error, just reset to idle
+        if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+        if (minSavingTimerRef.current) clearTimeout(minSavingTimerRef.current);
+        setVisualState('idle');
       }
     }, 800);
-  }, [editor, workspaceId, onSaveStatusChange]);
+  }, [editor, workspaceId, setVisualState, onPatchComplete]);
 
-  // Cleanup timeouts on unmount
+  // Cleanup all timers on unmount
   useEffect(() => {
     return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      if (savedIndicatorRef.current) clearTimeout(savedIndicatorRef.current);
+      if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
+      if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+      if (minSavingTimerRef.current) clearTimeout(minSavingTimerRef.current);
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
     };
   }, []);
 

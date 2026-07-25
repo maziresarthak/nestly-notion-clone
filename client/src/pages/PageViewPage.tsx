@@ -7,8 +7,7 @@ import type { PageFull } from '../api/pages';
 import PageHeader from '../components/pages/PageHeader';
 import PageBreadcrumb from '../components/pages/PageBreadcrumb';
 import PageEditor from '../components/pages/PageEditor';
-
-type SaveStatus = 'idle' | 'saving' | 'saved';
+import type { VisualSaveState } from '../components/pages/PageEditor';
 
 export default function PageViewPage() {
   const { pageId } = useParams<{ pageId: string }>();
@@ -20,7 +19,7 @@ export default function PageViewPage() {
   const [page, setPage] = useState<PageFull | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [visualState, setVisualState] = useState<VisualSaveState>('idle');
 
   useEffect(() => {
     if (!pageId || !workspace) return;
@@ -46,8 +45,8 @@ export default function PageViewPage() {
     };
   }, [pageId, workspace?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSaveStatusChange = useCallback((status: SaveStatus) => {
-    setSaveStatus(status);
+  const handleVisualStateChange = useCallback((state: VisualSaveState) => {
+    setVisualState(state);
   }, []);
 
   // ─── Create sub-page from page view ─────────────
@@ -121,6 +120,9 @@ export default function PageViewPage() {
     );
   }
 
+  // Determine indicator visibility: only 'saving' and 'saved' are visible
+  const isIndicatorVisible = visualState === 'saving' || visualState === 'saved';
+
   return (
     <div
       className="animate-fade-in"
@@ -131,54 +133,49 @@ export default function PageViewPage() {
         position: 'relative',
       }}
     >
-      {/* ─── Save Status Indicator ──────────────── */}
+      {/* ─── Save Status Indicator (fixed position, out of flow) ──── */}
       <div
         style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
+          position: 'fixed',
+          top: '16px',
+          right: '24px',
+          zIndex: 50,
           display: 'flex',
-          justifyContent: 'flex-end',
-          padding: '8px 0',
-          marginBottom: '8px',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '6px 14px',
+          borderRadius: 'var(--radius-sm)',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-default)',
+          fontSize: '12px',
+          color: visualState === 'saving' ? 'var(--text-muted)' : 'var(--success)',
+          width: '100px',
+          justifyContent: 'center',
+          pointerEvents: 'none',
+          opacity: isIndicatorVisible ? 1 : 0,
+          transition: 'opacity 0.18s ease',
         }}
       >
-        {saveStatus !== 'idle' && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '4px 12px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-default)',
-              fontSize: '12px',
-              color: saveStatus === 'saving' ? 'var(--text-muted)' : 'var(--success)',
-              transition: 'all 0.3s ease',
-            }}
-          >
-            {saveStatus === 'saving' ? (
-              <>
-                <div
-                  style={{
-                    width: '12px',
-                    height: '12px',
-                    border: '2px solid var(--border-default)',
-                    borderTopColor: 'var(--text-muted)',
-                    borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite',
-                  }}
-                />
-                Saving…
-              </>
-            ) : (
-              <>
-                <span>✓</span>
-                Saved
-              </>
-            )}
-          </div>
+        {visualState === 'saving' ? (
+          <>
+            <div
+              style={{
+                width: '12px',
+                height: '12px',
+                border: '2px solid var(--border-default)',
+                borderTopColor: 'var(--text-muted)',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite',
+                flexShrink: 0,
+              }}
+            />
+            <span>Saving…</span>
+          </>
+        ) : (
+          <>
+            <span>✓</span>
+            <span>Saved</span>
+          </>
         )}
       </div>
 
@@ -226,7 +223,7 @@ export default function PageViewPage() {
         pageId={page.id}
         workspaceId={page.workspaceId}
         initialContent={page.content}
-        onSaveStatusChange={handleSaveStatusChange}
+        onVisualStateChange={handleVisualStateChange}
       />
     </div>
   );
