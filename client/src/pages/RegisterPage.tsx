@@ -1,6 +1,16 @@
-import { Link } from 'react-router-dom'
+import RegisterForm from '../components/auth/RegisterForm';
+import GoogleSignInButton from '../components/auth/GoogleSignInButton';
+import { Navigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
 
 export default function RegisterPage() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  // If already logged in, redirect to dashboard
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <div
       style={{
@@ -23,14 +33,20 @@ export default function RegisterPage() {
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border-default)',
           boxShadow: 'var(--shadow-lg)',
-          textAlign: 'center',
           display: 'flex',
           flexDirection: 'column',
           gap: '24px',
         }}
       >
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+          }}
+        >
           <div
             style={{
               width: '36px',
@@ -47,36 +63,29 @@ export default function RegisterPage() {
           >
             N
           </div>
-          <span style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <span
+            style={{
+              fontSize: '22px',
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+            }}
+          >
             Nestly
           </span>
         </div>
 
-        <h1 style={{ fontSize: '24px', fontWeight: 600, color: 'var(--text-primary)' }}>
-          Create your account
-        </h1>
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 600, color: 'var(--text-primary)' }}>
+            Create your account
+          </h1>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+            Get started with Nestly for free
+          </p>
+        </div>
 
-        <p style={{ fontSize: '15px', color: 'var(--text-secondary)' }}>
-          Registration page coming in Milestone 2
-        </p>
-
-        <Link
-          to="/"
-          style={{
-            padding: '10px 24px',
-            fontSize: '14px',
-            fontWeight: 500,
-            borderRadius: 'var(--radius-md)',
-            background: 'var(--bg-tertiary)',
-            color: 'var(--text-secondary)',
-            border: '1px solid var(--border-default)',
-            transition: 'var(--transition-fast)',
-            display: 'inline-block',
-          }}
-        >
-          ← Back to home
-        </Link>
+        <RegisterForm />
+        <GoogleSignInButton />
       </div>
     </div>
-  )
+  );
 }

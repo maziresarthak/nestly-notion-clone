@@ -127,3 +127,7 @@ input, textarea {
 .animate-fade-in {
   animation: fadeIn var(--transition-base) ease-out;
 }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
