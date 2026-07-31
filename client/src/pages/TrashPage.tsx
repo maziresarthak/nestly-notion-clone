@@ -3,8 +3,10 @@ import { toast } from 'sonner';
 import { usePageStore } from '../stores/pageStore';
 import * as pagesApi from '../api/pages';
 import type { TrashItem } from '../api/pages';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export default function TrashPage() {
+  useDocumentTitle('Trash');
   const workspace = usePageStore((s) => s.workspace);
   const setPages = usePageStore((s) => s.setPages);
   const [trashItems, setTrashItems] = useState<TrashItem[]>([]);

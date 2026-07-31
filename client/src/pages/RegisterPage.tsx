@@ -2,8 +2,10 @@ import RegisterForm from '../components/auth/RegisterForm';
 import GoogleSignInButton from '../components/auth/GoogleSignInButton';
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export default function RegisterPage() {
+  useDocumentTitle('Register');
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   // If already logged in, redirect to dashboard

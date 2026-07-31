@@ -2,12 +2,14 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { usePageStore } from '../stores/pageStore';
 import * as pagesApi from '../api/pages';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 /**
  * Dashboard: empty state or redirect to first page.
  * Shows when user navigates to / inside the AppLayout.
  */
 export default function DashboardPage() {
+  useDocumentTitle('Dashboard');
   const workspace = usePageStore((s) => s.workspace);
   const pages = usePageStore((s) => s.pages);
   const addPage = usePageStore((s) => s.addPage);

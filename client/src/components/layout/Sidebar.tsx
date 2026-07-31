@@ -24,9 +24,10 @@ import type { DropIndicator } from '../pages/PageTreeItem';
 
 interface SidebarProps {
   onOpenSearch?: () => void;
+  onNavigate?: () => void;
 }
 
-export default function Sidebar({ onOpenSearch }: SidebarProps) {
+export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);

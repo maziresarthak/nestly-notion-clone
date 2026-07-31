@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { AppError } from '../lib/AppError.js';
+import { logger } from '../lib/logger.js';
 
 /**
  * Centralized error handler middleware.
@@ -8,7 +9,7 @@ import { AppError } from '../lib/AppError.js';
  */
 export function errorHandler(
   err: Error,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction
 ): void {
@@ -34,8 +35,11 @@ export function errorHandler(
     return;
   }
 
-  // Unknown / unexpected error
-  console.error('[Unhandled Error]', err);
+  // Unknown / unexpected error — log full stack server-side only
+  logger.error(
+    { err, requestId: req.requestId, path: req.originalUrl },
+    'Unhandled error'
+  );
   res.status(500).json({
     error: {
       code: 'INTERNAL_ERROR',
@@ -43,3 +47,4 @@ export function errorHandler(
     },
   });
 }
+

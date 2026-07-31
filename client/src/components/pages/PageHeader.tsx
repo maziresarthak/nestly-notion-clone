@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
+import Picker from '@emoji-mart/react';
+import data from '@emoji-mart/data';
 import * as pagesApi from '../../api/pages';
 import { usePageStore } from '../../stores/pageStore';
 
@@ -11,7 +13,7 @@ interface PageHeaderProps {
 }
 
 /**
- * Editable page title + icon. Title auto-saves with 800ms debounce.
+ * Editable page title + icon with emoji-mart picker.
  */
 export default function PageHeader({
   pageId,
@@ -52,9 +54,7 @@ export default function PageHeader({
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setTitle(newTitle);
-    // Update sidebar immediately (optimistic)
     updatePage(pageId, { title: newTitle || 'Untitled' });
-    // Save to server with debounce
     debouncedSave(newTitle || 'Untitled');
   };
 
@@ -69,7 +69,11 @@ export default function PageHeader({
     }
   };
 
-  // Cleanup timeout on unmount
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleEmojiSelect = (emoji: any) => {
+    handleIconChange(emoji.native);
+  };
+
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
@@ -77,9 +81,6 @@ export default function PageHeader({
       }
     };
   }, []);
-
-  // Common emoji set for quick picking
-  const quickEmojis = ['📄', '📝', '📋', '🎯', '💡', '🔥', '⭐', '📌', '🏠', '📚', '🎨', '⚡', '🚀', '💻', '📊', '🎵'];
 
   return (
     <div style={{ marginBottom: '32px' }}>
@@ -104,7 +105,7 @@ export default function PageHeader({
           {icon}
         </button>
 
-        {/* Simple emoji picker */}
+        {/* Emoji picker popover */}
         {showIconPicker && (
           <>
             <div
@@ -120,53 +121,38 @@ export default function PageHeader({
                 position: 'absolute',
                 top: '60px',
                 left: 0,
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
-                padding: '12px',
-                boxShadow: 'var(--shadow-lg)',
                 zIndex: 11,
-                width: '240px',
               }}
             >
+              <Picker
+                data={data}
+                onEmojiSelect={handleEmojiSelect}
+                theme="dark"
+                previewPosition="none"
+                skinTonePosition="none"
+                set="native"
+                maxFrequentRows={2}
+              />
+              {/* Direct text input fallback */}
               <div
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(8, 1fr)',
-                  gap: '4px',
-                  marginBottom: '8px',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-default)',
+                  borderTop: 'none',
+                  borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+                  padding: '8px 12px',
+                  display: 'flex',
+                  gap: '6px',
                 }}
               >
-                {quickEmojis.map((emoji) => (
-                  <button
-                    key={emoji}
-                    onClick={() => handleIconChange(emoji)}
-                    style={{
-                      fontSize: '18px',
-                      padding: '4px',
-                      cursor: 'pointer',
-                      background: 'none',
-                      border: 'none',
-                      borderRadius: 'var(--radius-sm)',
-                      transition: 'var(--transition-fast)',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-              {/* Custom emoji input */}
-              <div style={{ display: 'flex', gap: '6px' }}>
                 <input
                   ref={iconInputRef}
                   type="text"
-                  placeholder="Type emoji…"
+                  placeholder="Paste emoji…"
                   maxLength={4}
                   style={{
                     flex: 1,
-                    padding: '6px 8px',
+                    padding: '5px 8px',
                     fontSize: '14px',
                     borderRadius: 'var(--radius-sm)',
                     background: 'var(--bg-primary)',
@@ -184,7 +170,7 @@ export default function PageHeader({
                     if (iconInputRef.current) handleIconChange(iconInputRef.current.value);
                   }}
                   style={{
-                    padding: '6px 10px',
+                    padding: '5px 10px',
                     fontSize: '12px',
                     fontWeight: 500,
                     borderRadius: 'var(--radius-sm)',

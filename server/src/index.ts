@@ -10,9 +10,11 @@ import userRoutes from './routes/user.js';
 import workspaceRoutes from './routes/workspace.js';
 import pageRoutes from './routes/page.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { requestLogger } from './middleware/requestLogger.js';
 import { authLimiter, apiLimiter } from './middleware/rateLimiter.js';
 import { authGuard } from './middleware/authGuard.js';
 import { AppError } from './lib/AppError.js';
+import { logger } from './lib/logger.js';
 
 const app = express();
 
@@ -28,6 +30,9 @@ app.use(
 // ─── Body parsing ────────────────────────────────────────────
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
+
+// ─── Request logging ─────────────────────────────────────────
+app.use(requestLogger);
 
 // ─── Routes ──────────────────────────────────────────────────
 app.use('/api/health', healthRoutes);
@@ -46,7 +51,7 @@ app.use(errorHandler);
 
 // ─── Start server ────────────────────────────────────────────
 app.listen(env.PORT, () => {
-  console.log(`🚀 Nestly server running on http://localhost:${env.PORT}`);
+  logger.info({ port: env.PORT, env: env.NODE_ENV }, '🚀 Nestly server running');
 });
 
 export default app;

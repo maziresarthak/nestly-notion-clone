@@ -9,6 +9,7 @@ import PageBreadcrumb from '../components/pages/PageBreadcrumb';
 import DateRangePicker from '../components/pages/DateRangePicker';
 import PageEditor from '../components/pages/PageEditor';
 import type { VisualSaveState } from '../components/pages/PageEditor';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export default function PageViewPage() {
   const { pageId } = useParams<{ pageId: string }>();
@@ -21,6 +22,8 @@ export default function PageViewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [visualState, setVisualState] = useState<VisualSaveState>('idle');
+
+  useDocumentTitle(page?.title || 'Page');
 
   useEffect(() => {
     if (!pageId || !workspace) return;
