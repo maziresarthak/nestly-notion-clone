@@ -6,6 +6,7 @@ import * as pagesApi from '../api/pages';
 import type { PageFull } from '../api/pages';
 import PageHeader from '../components/pages/PageHeader';
 import PageBreadcrumb from '../components/pages/PageBreadcrumb';
+import DateRangePicker from '../components/pages/DateRangePicker';
 import PageEditor from '../components/pages/PageEditor';
 import type { VisualSaveState } from '../components/pages/PageEditor';
 
@@ -186,6 +187,13 @@ export default function PageViewPage() {
         workspaceId={page.workspaceId}
         initialTitle={page.title}
         initialIcon={page.icon}
+      />
+
+      <DateRangePicker
+        pageId={page.id}
+        workspaceId={page.workspaceId}
+        initialStartDate={page.startDate}
+        initialEndDate={page.endDate}
       />
 
       {/* Add sub-page button */}

@@ -22,7 +22,11 @@ import { buildTree, flattenTree, getDescendantIds } from '../../lib/utils';
 import PageTreeItem from '../pages/PageTreeItem';
 import type { DropIndicator } from '../pages/PageTreeItem';
 
-export default function Sidebar() {
+interface SidebarProps {
+  onOpenSearch?: () => void;
+}
+
+export default function Sidebar({ onOpenSearch }: SidebarProps) {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
@@ -470,6 +474,69 @@ export default function Sidebar() {
             </DragOverlay>
           </DndContext>
         )}
+      </div>
+
+      {/* ─── Search + Trash Links ───────────────────── */}
+      <div style={{ padding: '4px 10px', borderTop: '1px solid var(--border-default)' }}>
+        {onOpenSearch && (
+          <button
+            onClick={onOpenSearch}
+            style={{
+              width: '100%',
+              padding: '6px 12px',
+              fontSize: '13px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'var(--transition-fast)',
+              border: 'none',
+              marginBottom: '2px',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            <span style={{ fontSize: '14px' }}>🔍</span>
+            <span style={{ flex: 1, textAlign: 'left' }}>Search</span>
+            <kbd
+              style={{
+                padding: '1px 5px',
+                fontSize: '10px',
+                color: 'var(--text-muted)',
+                background: 'var(--bg-tertiary)',
+                borderRadius: '3px',
+                border: '1px solid var(--border-default)',
+              }}
+            >
+              ⌘K
+            </kbd>
+          </button>
+        )}
+        <button
+          onClick={() => navigate('/trash')}
+          style={{
+            width: '100%',
+            padding: '6px 12px',
+            fontSize: '13px',
+            borderRadius: 'var(--radius-sm)',
+            background: 'transparent',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'var(--transition-fast)',
+            border: 'none',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+        >
+          <span style={{ fontSize: '14px' }}>🗑</span>
+          Trash
+        </button>
       </div>
 
       {/* ─── User Profile / Logout ─────────────────── */}

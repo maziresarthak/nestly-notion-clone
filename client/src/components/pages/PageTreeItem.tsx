@@ -18,6 +18,20 @@ interface PageTreeItemProps {
   dropIndicator: DropIndicator | null;
 }
 
+function formatDateBadge(startDate: string | null, endDate: string | null): string {
+  const fmt = (d: string) => {
+    const date = new Date(d);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  if (startDate && endDate) {
+    return `${fmt(startDate)} → ${fmt(endDate)}`;
+  }
+  if (startDate) return fmt(startDate);
+  if (endDate) return fmt(endDate);
+  return '';
+}
+
 export default function PageTreeItem({ node, depth, activeId, dropIndicator }: PageTreeItemProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -225,6 +239,23 @@ export default function PageTreeItem({ node, depth, activeId, dropIndicator }: P
         >
           {page.title || 'Untitled'}
         </span>
+
+        {/* Date badge */}
+        {(page.startDate || page.endDate) && !isHovered && (
+          <span
+            style={{
+              fontSize: '10px',
+              color: 'var(--text-muted)',
+              background: 'var(--bg-tertiary)',
+              padding: '1px 5px',
+              borderRadius: '3px',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {formatDateBadge(page.startDate, page.endDate)}
+          </span>
+        )}
 
         {/* Hover actions (hide during drag) */}
         {isHovered && !activeId && (

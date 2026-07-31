@@ -105,3 +105,52 @@ export async function deletePage(workspaceId: string, pageId: string) {
   );
   return res.data.data;
 }
+
+// ─── Trash ───────────────────────────────────────────────────
+
+export interface TrashItem {
+  id: string;
+  title: string;
+  icon: string | null;
+  parentId: string | null;
+  deletedAt: string;
+}
+
+export async function getTrash(workspaceId: string) {
+  const res = await apiClient.get<ApiSuccess<TrashItem[]>>(
+    `/workspaces/${workspaceId}/pages/trash`
+  );
+  return res.data.data;
+}
+
+export async function restorePage(workspaceId: string, pageId: string) {
+  const res = await apiClient.post<ApiSuccess<PageCreated>>(
+    `/workspaces/${workspaceId}/pages/${pageId}/restore`
+  );
+  return res.data.data;
+}
+
+export async function permanentDeletePage(workspaceId: string, pageId: string) {
+  const res = await apiClient.delete<ApiSuccess<{ deletedCount: number }>>(
+    `/workspaces/${workspaceId}/pages/${pageId}/permanent`
+  );
+  return res.data.data;
+}
+
+// ─── Search ──────────────────────────────────────────────────
+
+export interface SearchResult {
+  id: string;
+  title: string;
+  icon: string | null;
+  breadcrumb: Array<{ id: string; title: string; icon: string | null }>;
+}
+
+export async function searchPages(workspaceId: string, query: string) {
+  const res = await apiClient.get<ApiSuccess<SearchResult[]>>(
+    `/workspaces/${workspaceId}/pages/search`,
+    { params: { q: query } }
+  );
+  return res.data.data;
+}
+

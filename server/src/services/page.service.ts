@@ -314,3 +314,129 @@ export async function softDelete(pageId: string, userId: string) {
 
   return deleted;
 }
+
+// ─── Trash Operations ────────────────────────────────────────
+
+/**
+ * List all soft-deleted pages in a workspace.
+ */
+export async function listTrash(workspaceId: string, userId: string) {
+  await verifyWorkspaceOwnership(workspaceId, userId);
+
+  const pages = await prisma.page.findMany({
+    where: {
+      workspaceId,
+      isDeleted: true,
+    },
+    select: {
+      id: true,
+      title: true,
+      icon: true,
+      parentId: true,
+      deletedAt: true,
+    },
+    orderBy: { deletedAt: 'desc' },
+  });
+
+  return pages;
+}
+
+/**
+ * Restore a soft-deleted page.
+ */
+export async function restore(pageId: string, userId: string) {
+  const page = await verifyPageOwnership(pageId, userId);
+
+  if (!page.isDeleted) {
+    throw new AppError(422, 'NOT_DELETED', 'Page is not in trash');
+  }
+
+  const restored = await prisma.page.update({
+    where: { id: pageId },
+    data: {
+      isDeleted: false,
+      deletedAt: null,
+    },
+  });
+
+  return restored;
+}
+
+/**
+ * Permanently delete a page and ALL its descendants from the DB.
+ */
+export async function permanentDelete(pageId: string, userId: string) {
+  const page = await verifyPageOwnership(pageId, userId);
+
+  if (!page.isDeleted) {
+    throw new AppError(422, 'NOT_DELETED', 'Page must be in trash before permanent deletion');
+  }
+
+  // Collect all descendant IDs recursively
+  const idsToDelete = [pageId];
+  const queue = [pageId];
+
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+    const children = await prisma.page.findMany({
+      where: { parentId: currentId },
+      select: { id: true },
+    });
+
+    for (const child of children) {
+      idsToDelete.push(child.id);
+      queue.push(child.id);
+    }
+  }
+
+  // Delete all at once
+  await prisma.page.deleteMany({
+    where: { id: { in: idsToDelete } },
+  });
+
+  return { deletedCount: idsToDelete.length, deletedIds: idsToDelete };
+}
+
+// ─── Search ──────────────────────────────────────────────────
+
+/**
+ * Search pages by title (case-insensitive contains match).
+ * Returns results with breadcrumb for each.
+ */
+export async function search(workspaceId: string, userId: string, query: string) {
+  await verifyWorkspaceOwnership(workspaceId, userId);
+
+  if (!query || query.length < 1 || query.length > 100) {
+    throw new AppError(422, 'VALIDATION_ERROR', 'Search query must be 1-100 characters');
+  }
+
+  const pages = await prisma.page.findMany({
+    where: {
+      workspaceId,
+      isDeleted: false,
+      title: {
+        contains: query,
+        mode: 'insensitive',
+      },
+    },
+    select: {
+      id: true,
+      title: true,
+      icon: true,
+      parentId: true,
+    },
+    take: 20,
+    orderBy: { updatedAt: 'desc' },
+  });
+
+  // Compute breadcrumb for each result
+  const results = await Promise.all(
+    pages.map(async (page) => {
+      const breadcrumb = await computeBreadcrumb(page.id);
+      return { ...page, breadcrumb };
+    })
+  );
+
+  return results;
+}
+

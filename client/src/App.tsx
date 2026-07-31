@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import PageViewPage from './pages/PageViewPage'
+import TrashPage from './pages/TrashPage'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import AppLayout from './components/layout/AppLayout'
 
@@ -32,6 +33,7 @@ function App() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/page/:pageId" element={<PageViewPage />} />
+            <Route path="/trash" element={<TrashPage />} />
           </Route>
         </Route>
       </Routes>

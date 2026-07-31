@@ -1,18 +1,20 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import SearchDialog from '../search/SearchDialog';
 import { usePageStore } from '../../stores/pageStore';
 import * as workspacesApi from '../../api/workspaces';
 import * as pagesApi from '../../api/pages';
 
 /**
  * AppLayout: two-panel layout — fixed sidebar + flexible main content.
- * Loads workspace + pages on mount.
+ * Loads workspace + pages on mount. Registers Cmd+K search shortcut.
  */
 export default function AppLayout() {
   const setWorkspace = usePageStore((s) => s.setWorkspace);
   const setPages = usePageStore((s) => s.setPages);
   const workspace = usePageStore((s) => s.workspace);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
     loadWorkspaceAndPages();
@@ -33,6 +35,22 @@ export default function AppLayout() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Cmd+K / Ctrl+K keyboard shortcut
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  const handleCloseSearch = useCallback(() => {
+    setIsSearchOpen(false);
+  }, []);
+
   return (
     <div
       style={{
@@ -41,7 +59,7 @@ export default function AppLayout() {
         background: 'var(--bg-primary)',
       }}
     >
-      <Sidebar />
+      <Sidebar onOpenSearch={() => setIsSearchOpen(true)} />
       <main
         style={{
           flex: 1,
@@ -73,6 +91,8 @@ export default function AppLayout() {
           </div>
         )}
       </main>
+
+      <SearchDialog isOpen={isSearchOpen} onClose={handleCloseSearch} />
     </div>
   );
 }

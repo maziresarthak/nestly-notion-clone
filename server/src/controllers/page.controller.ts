@@ -115,3 +115,70 @@ export async function softDelete(req: Request, res: Response, next: NextFunction
     next(err);
   }
 }
+
+// ─── Trash ───────────────────────────────────────────────────
+
+export async function listTrash(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.userId) {
+      throw new AppError(401, 'UNAUTHORIZED', 'Not authenticated');
+    }
+
+    const workspaceId = req.params.workspaceId as string;
+    const pages = await pageService.listTrash(workspaceId, req.userId);
+
+    res.status(200).json({ data: pages });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function restore(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.userId) {
+      throw new AppError(401, 'UNAUTHORIZED', 'Not authenticated');
+    }
+
+    const pageId = req.params.id as string;
+    const page = await pageService.restore(pageId, req.userId);
+
+    res.status(200).json({ data: page });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function permanentDelete(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.userId) {
+      throw new AppError(401, 'UNAUTHORIZED', 'Not authenticated');
+    }
+
+    const pageId = req.params.id as string;
+    const result = await pageService.permanentDelete(pageId, req.userId);
+
+    res.status(200).json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ─── Search ──────────────────────────────────────────────────
+
+export async function search(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.userId) {
+      throw new AppError(401, 'UNAUTHORIZED', 'Not authenticated');
+    }
+
+    const workspaceId = req.params.workspaceId as string;
+    const q = (req.query.q as string) || '';
+
+    const results = await pageService.search(workspaceId, req.userId, q);
+
+    res.status(200).json({ data: results });
+  } catch (err) {
+    next(err);
+  }
+}
+
