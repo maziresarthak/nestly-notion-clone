@@ -148,10 +148,10 @@ export default function PageTreeItem({ node, depth, activeId, dropIndicator }: P
         <div
           style={{
             height: '2px',
-            background: 'var(--accent-primary)',
+            background: 'var(--accent)',
             borderRadius: '1px',
             marginLeft: `${indentPx}px`,
-            marginRight: '8px',
+            marginRight: 'var(--space-2)',
             marginBottom: '-1px',
             position: 'relative',
             zIndex: 20,
@@ -165,29 +165,28 @@ export default function PageTreeItem({ node, depth, activeId, dropIndicator }: P
         data-page-id={page.id}
         style={{
           paddingLeft: `${indentPx}px`,
-          paddingRight: '8px',
-          paddingTop: '4px',
-          paddingBottom: '4px',
-          fontSize: '13px',
+          paddingRight: 'var(--space-2)',
+          paddingTop: 'var(--space-1)',
+          paddingBottom: 'var(--space-1)',
+          fontSize: 'var(--text-ui)',
           borderRadius: 'var(--radius-sm)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
+          gap: 'var(--space-1)',
           background: isDropInside
-            ? 'rgba(139, 92, 246, 0.15)'
-            : isActive
-            ? 'var(--accent-subtle)'
+            ? 'rgba(139, 123, 247, 0.12)'
             : isHovered && !activeId
             ? 'var(--bg-hover)'
             : 'transparent',
           color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+          fontWeight: isActive ? 500 : 400,
           transition: 'background 0.1s',
           marginBottom: '1px',
           position: 'relative',
           userSelect: 'none',
           opacity: isDragging ? 0.4 : 1,
-          outline: isDropInside ? '2px solid var(--accent-primary)' : 'none',
+          outline: isDropInside ? '2px solid var(--accent)' : 'none',
           outlineOffset: '-2px',
         }}
         onClick={handleClick}
@@ -196,6 +195,23 @@ export default function PageTreeItem({ node, depth, activeId, dropIndicator }: P
         {...attributes}
         {...listeners}
       >
+        {/* ✨ Glow Pill — signature active indicator */}
+        {isActive && (
+          <div
+            style={{
+              position: 'absolute',
+              left: '4px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '3px',
+              height: '18px',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--accent)',
+              boxShadow: 'var(--shadow-glow)',
+            }}
+          />
+        )}
+
         {/* Expand/collapse chevron */}
         <button
           onClick={handleToggleExpand}
@@ -211,21 +227,40 @@ export default function PageTreeItem({ node, depth, activeId, dropIndicator }: P
             color: 'var(--text-muted)',
             fontSize: '10px',
             flexShrink: 0,
-            borderRadius: '2px',
+            borderRadius: 'var(--radius-xs)',
             transition: 'transform 0.15s ease',
             transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
             visibility: hasChildren ? 'visible' : 'hidden',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-tertiary)')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-overlay)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
         >
           ▶
         </button>
 
-        {/* Icon */}
-        <span style={{ fontSize: '14px', flexShrink: 0 }}>
-          {page.icon || '📄'}
-        </span>
+        {/* Icon — monogram default or custom emoji */}
+        {page.icon ? (
+          <span style={{ fontSize: '14px', flexShrink: 0, lineHeight: 1 }}>{page.icon}</span>
+        ) : (
+          <span
+            style={{
+              width: '20px',
+              height: '20px',
+              borderRadius: '5px',
+              background: 'var(--accent-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 'var(--text-caption)',
+              fontWeight: 600,
+              color: 'var(--accent)',
+              flexShrink: 0,
+              lineHeight: 1,
+            }}
+          >
+            {(page.title || 'U')[0].toUpperCase()}
+          </span>
+        )}
 
         {/* Title */}
         <span
@@ -244,11 +279,11 @@ export default function PageTreeItem({ node, depth, activeId, dropIndicator }: P
         {(page.startDate || page.endDate) && !isHovered && (
           <span
             style={{
-              fontSize: '10px',
+              fontSize: 'var(--text-caption)',
               color: 'var(--text-muted)',
-              background: 'var(--bg-tertiary)',
+              background: 'var(--bg-overlay)',
               padding: '1px 5px',
-              borderRadius: '3px',
+              borderRadius: 'var(--radius-xs)',
               flexShrink: 0,
               whiteSpace: 'nowrap',
             }}
@@ -323,10 +358,10 @@ export default function PageTreeItem({ node, depth, activeId, dropIndicator }: P
         <div
           style={{
             height: '2px',
-            background: 'var(--accent-primary)',
+            background: 'var(--accent)',
             borderRadius: '1px',
             marginLeft: `${indentPx}px`,
-            marginRight: '8px',
+            marginRight: 'var(--space-2)',
             marginTop: '-1px',
             position: 'relative',
             zIndex: 20,

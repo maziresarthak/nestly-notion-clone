@@ -54,21 +54,27 @@ export default function ProtectedRoute() {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '16px',
+            gap: 'var(--space-4)',
           }}
         >
-          {/* Spinning loader */}
           <div
             style={{
-              width: '36px',
-              height: '36px',
-              border: '3px solid var(--border-default)',
-              borderTopColor: 'var(--accent-primary)',
-              borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
+              width: '32px',
+              height: '32px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'linear-gradient(135deg, var(--accent), var(--accent-active))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '15px',
+              fontWeight: 700,
+              color: '#fff',
+              animation: 'pulse-glow 2s ease-in-out infinite',
             }}
-          />
-          <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Loading…</span>
+          >
+            N
+          </div>
+          <span style={{ fontSize: 'var(--text-ui)', color: 'var(--text-muted)' }}>Loading…</span>
         </div>
       </div>
     );

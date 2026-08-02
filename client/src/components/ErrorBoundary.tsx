@@ -48,16 +48,16 @@ export default class ErrorBoundary extends Component<Props, State> {
           <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)' }}>
             Something went wrong
           </h2>
-          <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '400px' }}>
+          <p style={{ fontSize: 'var(--text-body)', color: 'var(--text-muted)', maxWidth: '400px' }}>
             An unexpected error occurred. You can try reloading the page.
           </p>
           {this.state.error && (
             <pre
               style={{
-                fontSize: '11px',
+                fontSize: 'var(--text-caption)',
                 color: 'var(--error)',
-                background: 'var(--bg-secondary)',
-                padding: '8px 12px',
+                background: 'var(--bg-surface)',
+                padding: 'var(--space-2) var(--space-3)',
                 borderRadius: 'var(--radius-sm)',
                 maxWidth: '500px',
                 overflow: 'auto',
@@ -71,11 +71,11 @@ export default class ErrorBoundary extends Component<Props, State> {
           <button
             onClick={this.handleReload}
             style={{
-              padding: '10px 24px',
-              fontSize: '14px',
+              padding: '10px var(--space-6)',
+              fontSize: 'var(--text-body)',
               fontWeight: 600,
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--accent-primary)',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--accent)',
               color: '#fff',
               border: 'none',
               cursor: 'pointer',

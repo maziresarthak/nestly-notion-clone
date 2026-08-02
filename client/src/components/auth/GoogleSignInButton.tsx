@@ -78,23 +78,7 @@ export default function GoogleSignInButton() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-      {/* Divider */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          width: '100%',
-        }}
-      >
-        <div style={{ flex: 1, height: '1px', background: 'var(--border-default)' }} />
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          or
-        </span>
-        <div style={{ flex: 1, height: '1px', background: 'var(--border-default)' }} />
-      </div>
-
+    <div style={{ display: 'flex', justifyContent: 'center' }}>
       {/* Google button rendered by GIS */}
       <div ref={buttonRef} id="google-signin-button" />
     </div>

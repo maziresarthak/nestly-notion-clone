@@ -91,10 +91,10 @@ export default function PageViewPage() {
       >
         <div
           style={{
-            width: '28px',
-            height: '28px',
-            border: '3px solid var(--border-default)',
-            borderTopColor: 'var(--accent-primary)',
+            width: '24px',
+            height: '24px',
+            border: '2.5px solid var(--border)',
+            borderTopColor: 'var(--accent)',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }}
@@ -131,9 +131,9 @@ export default function PageViewPage() {
     <div
       className="animate-fade-in"
       style={{
-        maxWidth: '720px',
+        maxWidth: '680px',
         margin: '0 auto',
-        padding: '40px 24px 120px',
+        padding: 'var(--space-10) var(--space-6) 120px',
         position: 'relative',
       }}
     >
@@ -141,32 +141,33 @@ export default function PageViewPage() {
       <div
         style={{
           position: 'fixed',
-          top: '16px',
-          right: '24px',
+          top: 'var(--space-4)',
+          right: 'var(--space-6)',
           zIndex: 50,
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
-          padding: '6px 14px',
+          gap: 'var(--space-2)',
+          padding: '5px var(--space-3)',
           borderRadius: 'var(--radius-sm)',
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-default)',
-          fontSize: '12px',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+          fontSize: 'var(--text-caption)',
           color: visualState === 'saving' ? 'var(--text-muted)' : 'var(--success)',
-          width: '100px',
+          width: '90px',
           justifyContent: 'center',
           pointerEvents: 'none',
           opacity: isIndicatorVisible ? 1 : 0,
           transition: 'opacity 0.18s ease',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
         {visualState === 'saving' ? (
           <>
             <div
               style={{
-                width: '12px',
-                height: '12px',
-                border: '2px solid var(--border-default)',
+                width: '10px',
+                height: '10px',
+                border: '2px solid var(--border)',
                 borderTopColor: 'var(--text-muted)',
                 borderRadius: '50%',
                 animation: 'spin 0.8s linear infinite',
@@ -205,23 +206,23 @@ export default function PageViewPage() {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
-          padding: '8px 14px',
-          fontSize: '13px',
+          gap: 'var(--space-2)',
+          padding: '6px var(--space-3)',
+          fontSize: 'var(--text-ui)',
           color: 'var(--text-muted)',
           background: 'none',
-          border: '1px dashed var(--border-default)',
+          border: '1px dashed var(--border)',
           borderRadius: 'var(--radius-sm)',
           cursor: 'pointer',
           transition: 'var(--transition-fast)',
-          marginBottom: '24px',
+          marginBottom: 'var(--space-6)',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = 'var(--accent-primary)';
-          e.currentTarget.style.color = 'var(--accent-primary)';
+          e.currentTarget.style.borderColor = 'var(--accent)';
+          e.currentTarget.style.color = 'var(--accent)';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = 'var(--border-default)';
+          e.currentTarget.style.borderColor = 'var(--border)';
           e.currentTarget.style.color = 'var(--text-muted)';
         }}
       >

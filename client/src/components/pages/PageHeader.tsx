@@ -136,13 +136,13 @@ export default function PageHeader({
               {/* Direct text input fallback */}
               <div
                 style={{
-                  background: 'var(--bg-elevated)',
-                  border: '1px solid var(--border-default)',
+                  background: 'var(--bg-overlay)',
+                  border: '1px solid var(--border)',
                   borderTop: 'none',
                   borderRadius: '0 0 var(--radius-md) var(--radius-md)',
-                  padding: '8px 12px',
+                  padding: 'var(--space-2) var(--space-3)',
                   display: 'flex',
-                  gap: '6px',
+                  gap: 'var(--space-2)',
                 }}
               >
                 <input
@@ -152,12 +152,12 @@ export default function PageHeader({
                   maxLength={4}
                   style={{
                     flex: 1,
-                    padding: '5px 8px',
-                    fontSize: '14px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--bg-primary)',
+                    padding: '5px var(--space-2)',
+                    fontSize: 'var(--text-body)',
+                    borderRadius: 'var(--radius-xs)',
+                    background: 'var(--bg-canvas)',
                     color: 'var(--text-primary)',
-                    border: '1px solid var(--border-default)',
+                    border: '1px solid var(--border)',
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && iconInputRef.current) {
@@ -171,10 +171,10 @@ export default function PageHeader({
                   }}
                   style={{
                     padding: '5px 10px',
-                    fontSize: '12px',
+                    fontSize: 'var(--text-caption)',
                     fontWeight: 500,
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--accent-primary)',
+                    borderRadius: 'var(--radius-xs)',
+                    background: 'var(--accent)',
                     color: '#fff',
                     cursor: 'pointer',
                     border: 'none',
@@ -197,15 +197,15 @@ export default function PageHeader({
         placeholder="Untitled"
         style={{
           width: '100%',
-          fontSize: '40px',
+          fontSize: 'var(--text-page-title)',
           fontWeight: 700,
           color: 'var(--text-primary)',
           background: 'none',
           border: 'none',
           outline: 'none',
           padding: 0,
-          lineHeight: 1.2,
-          letterSpacing: '-0.02em',
+          lineHeight: 1.15,
+          letterSpacing: '-0.025em',
         }}
       />
     </div>

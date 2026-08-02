@@ -75,26 +75,26 @@ export default function DateRangePicker({
   const hasAnyDate = startDate || endDate;
 
   return (
-    <div style={{ marginBottom: '16px' }}>
+    <div style={{ marginBottom: 'var(--space-4)' }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
-          padding: '4px 8px',
-          fontSize: '12px',
+          gap: 'var(--space-2)',
+          padding: 'var(--space-1) var(--space-2)',
+          fontSize: 'var(--text-caption)',
           color: 'var(--text-muted)',
           background: 'none',
           border: 'none',
           cursor: 'pointer',
-          borderRadius: 'var(--radius-sm)',
+          borderRadius: 'var(--radius-xs)',
           transition: 'var(--transition-fast)',
         }}
         onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
         onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
       >
-        <span style={{ fontSize: '10px', transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>
+        <span style={{ fontSize: '9px', transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>
           ▶
         </span>
         Properties
@@ -103,14 +103,14 @@ export default function DateRangePicker({
       {isOpen && (
         <div
           style={{
-            padding: '12px 0 8px 16px',
+            padding: 'var(--space-3) 0 var(--space-2) var(--space-4)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px',
+            gap: 'var(--space-2)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label style={{ fontSize: '12px', color: 'var(--text-muted)', width: '70px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+            <label style={{ fontSize: 'var(--text-caption)', color: 'var(--text-muted)', width: '70px', flexShrink: 0 }}>
               Start date
             </label>
             <input
@@ -118,18 +118,18 @@ export default function DateRangePicker({
               value={startDate}
               onChange={(e) => handleStartChange(e.target.value)}
               style={{
-                padding: '4px 8px',
-                fontSize: '13px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--bg-primary)',
+                padding: 'var(--space-1) var(--space-2)',
+                fontSize: 'var(--text-ui)',
+                borderRadius: 'var(--radius-xs)',
+                background: 'var(--bg-canvas)',
                 color: 'var(--text-primary)',
-                border: '1px solid var(--border-default)',
+                border: '1px solid var(--border)',
                 colorScheme: 'dark',
               }}
             />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label style={{ fontSize: '12px', color: 'var(--text-muted)', width: '70px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+            <label style={{ fontSize: 'var(--text-caption)', color: 'var(--text-muted)', width: '70px', flexShrink: 0 }}>
               End date
             </label>
             <input
@@ -137,19 +137,19 @@ export default function DateRangePicker({
               value={endDate}
               onChange={(e) => handleEndChange(e.target.value)}
               style={{
-                padding: '4px 8px',
-                fontSize: '13px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--bg-primary)',
+                padding: 'var(--space-1) var(--space-2)',
+                fontSize: 'var(--text-ui)',
+                borderRadius: 'var(--radius-xs)',
+                background: 'var(--bg-canvas)',
                 color: 'var(--text-primary)',
-                border: '1px solid var(--border-default)',
+                border: '1px solid var(--border)',
                 colorScheme: 'dark',
               }}
             />
           </div>
 
           {error && (
-            <p style={{ fontSize: '12px', color: 'var(--error)', margin: '2px 0 0' }}>
+            <p style={{ fontSize: 'var(--text-caption)', color: 'var(--error)', margin: '2px 0 0' }}>
               {error}
             </p>
           )}
@@ -160,16 +160,16 @@ export default function DateRangePicker({
               style={{
                 alignSelf: 'flex-start',
                 padding: '3px 10px',
-                fontSize: '11px',
+                fontSize: 'var(--text-caption)',
                 color: 'var(--text-muted)',
                 background: 'none',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-xs)',
                 cursor: 'pointer',
                 transition: 'var(--transition-fast)',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--text-primary)')}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border-default)')}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
             >
               Clear dates
             </button>

@@ -14,7 +14,6 @@ export default function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
   const { query, setQuery, results, loading, searched, reset } = useSearch();
   const setActivePageId = usePageStore((s) => s.setActivePageId);
 
-  // Focus input when dialog opens
   useEffect(() => {
     if (isOpen && inputRef.current) {
       setTimeout(() => inputRef.current?.focus(), 50);
@@ -24,7 +23,6 @@ export default function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
     }
   }, [isOpen, reset]);
 
-  // Close on Escape
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
@@ -50,24 +48,26 @@ export default function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
         style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
+          background: 'rgba(0, 0, 0, 0.6)',
           zIndex: 100,
+          backdropFilter: 'blur(4px)',
         }}
       />
 
       {/* Dialog */}
       <div
+        className="animate-fade-in-scale"
         style={{
           position: 'fixed',
-          top: '20%',
+          top: '18%',
           left: '50%',
           transform: 'translateX(-50%)',
           width: '100%',
-          maxWidth: '540px',
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--border-default)',
+          maxWidth: '520px',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
           borderRadius: 'var(--radius-lg)',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.4)',
+          boxShadow: 'var(--shadow-lg)',
           zIndex: 101,
           overflow: 'hidden',
         }}
@@ -77,12 +77,12 @@ export default function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
-            padding: '14px 16px',
-            borderBottom: '1px solid var(--border-default)',
+            gap: 'var(--space-3)',
+            padding: 'var(--space-3) var(--space-4)',
+            borderBottom: '1px solid var(--border)',
           }}
         >
-          <span style={{ fontSize: '16px', color: 'var(--text-muted)' }}>🔍</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           <input
             ref={inputRef}
             type="text"
@@ -91,7 +91,7 @@ export default function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
             placeholder="Search pages…"
             style={{
               flex: 1,
-              fontSize: '15px',
+              fontSize: 'var(--text-body)',
               background: 'none',
               border: 'none',
               outline: 'none',
@@ -101,10 +101,10 @@ export default function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
           {loading && (
             <div
               style={{
-                width: '16px',
-                height: '16px',
-                border: '2px solid var(--border-default)',
-                borderTopColor: 'var(--text-muted)',
+                width: '14px',
+                height: '14px',
+                border: '2px solid var(--border)',
+                borderTopColor: 'var(--accent)',
                 borderRadius: '50%',
                 animation: 'spin 0.8s linear infinite',
                 flexShrink: 0,
@@ -114,11 +114,12 @@ export default function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
           <kbd
             style={{
               padding: '2px 6px',
-              fontSize: '11px',
+              fontSize: 'var(--text-caption)',
               color: 'var(--text-muted)',
-              background: 'var(--bg-tertiary)',
-              borderRadius: '3px',
-              border: '1px solid var(--border-default)',
+              background: 'var(--bg-canvas)',
+              borderRadius: 'var(--radius-xs)',
+              border: '1px solid var(--border)',
+              fontFamily: 'var(--font-sans)',
             }}
           >
             Esc
@@ -130,10 +131,10 @@ export default function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
           {!query.trim() ? (
             <div
               style={{
-                padding: '40px 20px',
+                padding: 'var(--space-10) var(--space-5)',
                 textAlign: 'center',
                 color: 'var(--text-muted)',
-                fontSize: '13px',
+                fontSize: 'var(--text-ui)',
               }}
             >
               Type to search your pages
@@ -141,13 +142,13 @@ export default function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
           ) : searched && results.length === 0 && !loading ? (
             <div
               style={{
-                padding: '40px 20px',
+                padding: 'var(--space-10) var(--space-5)',
                 textAlign: 'center',
                 color: 'var(--text-muted)',
-                fontSize: '13px',
+                fontSize: 'var(--text-ui)',
               }}
             >
-              <span style={{ fontSize: '24px', display: 'block', marginBottom: '8px' }}>😕</span>
+              <span style={{ fontSize: '24px', display: 'block', marginBottom: 'var(--space-2)' }}>😕</span>
               No pages found for &ldquo;{query}&rdquo;
             </div>
           ) : (
@@ -159,8 +160,8 @@ export default function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
                   width: '100%',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px',
-                  padding: '10px 16px',
+                  gap: 'var(--space-3)',
+                  padding: 'var(--space-2) var(--space-4)',
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
@@ -171,13 +172,31 @@ export default function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
               >
-                <span style={{ fontSize: '16px', flexShrink: 0 }}>
-                  {result.icon || '📄'}
-                </span>
+                {result.icon ? (
+                  <span style={{ fontSize: '16px', flexShrink: 0 }}>{result.icon}</span>
+                ) : (
+                  <span
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '5px',
+                      background: 'var(--accent-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 'var(--text-caption)',
+                      fontWeight: 600,
+                      color: 'var(--accent)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {(result.title || 'U')[0].toUpperCase()}
+                  </span>
+                )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p
                     style={{
-                      fontSize: '14px',
+                      fontSize: 'var(--text-body)',
                       fontWeight: 500,
                       margin: 0,
                       overflow: 'hidden',
@@ -190,7 +209,7 @@ export default function SearchDialog({ isOpen, onClose }: SearchDialogProps) {
                   {result.breadcrumb.length > 1 && (
                     <p
                       style={{
-                        fontSize: '11px',
+                        fontSize: 'var(--text-caption)',
                         color: 'var(--text-muted)',
                         margin: '2px 0 0',
                         overflow: 'hidden',

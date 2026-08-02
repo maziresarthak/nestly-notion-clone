@@ -47,21 +47,21 @@ export default function DashboardPage() {
         justifyContent: 'center',
         height: '100%',
         minHeight: '500px',
-        gap: '24px',
-        padding: '48px',
+        gap: 'var(--space-6)',
+        padding: 'var(--space-10)',
         textAlign: 'center',
       }}
     >
       <div
         style={{
-          width: '80px',
-          height: '80px',
+          width: '72px',
+          height: '72px',
           borderRadius: 'var(--radius-lg)',
-          background: 'var(--accent-subtle)',
+          background: 'var(--accent-muted)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '36px',
+          fontSize: '32px',
         }}
       >
         ✨
@@ -70,15 +70,16 @@ export default function DashboardPage() {
       <div>
         <h1
           style={{
-            fontSize: '26px',
+            fontSize: 'var(--text-heading)',
             fontWeight: 700,
             color: 'var(--text-primary)',
-            marginBottom: '8px',
+            marginBottom: 'var(--space-2)',
+            letterSpacing: '-0.02em',
           }}
         >
           Welcome to {workspace?.name || 'Nestly'}
         </h1>
-        <p style={{ fontSize: '15px', color: 'var(--text-secondary)', maxWidth: '400px' }}>
+        <p style={{ fontSize: 'var(--text-body)', color: 'var(--text-secondary)', maxWidth: '380px' }}>
           {pages.length === 0
             ? 'Your workspace is empty. Create your first page to get started.'
             : 'Select a page from the sidebar, or create a new one.'}
@@ -90,24 +91,24 @@ export default function DashboardPage() {
           id="create-first-page"
           onClick={handleCreatePage}
           style={{
-            padding: '12px 28px',
-            fontSize: '15px',
+            padding: '10px var(--space-6)',
+            fontSize: 'var(--text-body)',
             fontWeight: 600,
-            borderRadius: 'var(--radius-md)',
-            background: 'linear-gradient(135deg, #a78bfa, #7c3aed)',
+            borderRadius: 'var(--radius-sm)',
+            background: 'var(--accent)',
             color: '#fff',
             cursor: 'pointer',
             transition: 'var(--transition-fast)',
             border: 'none',
-            boxShadow: '0 0 20px rgba(167, 139, 250, 0.2)',
+            boxShadow: 'var(--shadow-glow)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 0 30px rgba(167, 139, 250, 0.35)';
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.background = 'var(--accent-hover)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 0 20px rgba(167, 139, 250, 0.2)';
+            e.currentTarget.style.background = 'var(--accent)';
           }}
         >
           Create your first page

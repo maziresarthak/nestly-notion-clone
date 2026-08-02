@@ -293,8 +293,8 @@ export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
         width: '260px',
         minWidth: '260px',
         height: '100vh',
-        background: 'var(--bg-secondary)',
-        borderRight: '1px solid var(--border-default)',
+        background: 'var(--bg-surface)',
+        borderRight: '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -303,8 +303,8 @@ export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
       {/* ─── Workspace Header ──────────────────────── */}
       <div
         style={{
-          padding: '16px 14px 12px',
-          borderBottom: '1px solid var(--border-default)',
+          padding: 'var(--space-4) var(--space-3) var(--space-3)',
+          borderBottom: '1px solid var(--border)',
         }}
       >
         {isEditingName ? (
@@ -322,13 +322,13 @@ export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
             }}
             style={{
               width: '100%',
-              padding: '4px 8px',
-              fontSize: '14px',
+              padding: 'var(--space-1) var(--space-2)',
+              fontSize: 'var(--text-body)',
               fontWeight: 600,
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--bg-primary)',
+              borderRadius: 'var(--radius-xs)',
+              background: 'var(--bg-canvas)',
               color: 'var(--text-primary)',
-              border: '1px solid var(--accent-primary)',
+              border: '1px solid var(--accent)',
             }}
           />
         ) : (
@@ -354,15 +354,16 @@ export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
               style={{
                 width: '22px',
                 height: '22px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'linear-gradient(135deg, #a78bfa, #6d28d9)',
+                borderRadius: 'var(--radius-xs)',
+                background: 'linear-gradient(135deg, var(--accent), var(--accent-active))',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '11px',
-                fontWeight: 800,
+                fontSize: '10px',
+                fontWeight: 700,
                 color: '#fff',
                 flexShrink: 0,
+                letterSpacing: '0.02em',
               }}
             >
               N
@@ -375,29 +376,35 @@ export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
       </div>
 
       {/* ─── New Page Button ──────────────────────────── */}
-      <div style={{ padding: '8px 10px 4px' }}>
+      <div style={{ padding: 'var(--space-2) var(--space-3) var(--space-1)' }}>
         <button
           id="new-page-button"
           onClick={handleCreatePage}
           style={{
             width: '100%',
-            padding: '8px 12px',
-            fontSize: '13px',
+            padding: '6px var(--space-3)',
+            fontSize: 'var(--text-ui)',
             fontWeight: 500,
             borderRadius: 'var(--radius-sm)',
-            background: 'transparent',
-            color: 'var(--text-secondary)',
+            background: 'var(--accent-muted)',
+            color: 'var(--accent)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: 'var(--space-2)',
             transition: 'var(--transition-fast)',
-            border: 'none',
+            border: '1px solid transparent',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(139, 123, 247, 0.18)';
+            e.currentTarget.style.borderColor = 'rgba(139, 123, 247, 0.25)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'var(--accent-muted)';
+            e.currentTarget.style.borderColor = 'transparent';
+          }}
         >
-          <span style={{ fontSize: '16px', lineHeight: 1 }}>+</span>
+          <span style={{ fontSize: '15px', lineHeight: 1, fontWeight: 600 }}>+</span>
           New page
         </button>
       </div>
@@ -407,7 +414,7 @@ export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
         style={{
           flex: 1,
           overflow: 'auto',
-          padding: '4px 6px',
+          padding: 'var(--space-1) var(--space-2)',
         }}
       >
         {pages.length === 0 ? (
@@ -445,17 +452,17 @@ export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
               {activePage && (
                 <div
                   style={{
-                    padding: '4px 12px',
-                    fontSize: '13px',
+                    padding: 'var(--space-1) var(--space-3)',
+                    fontSize: 'var(--text-ui)',
                     borderRadius: 'var(--radius-sm)',
-                    background: 'var(--bg-elevated)',
-                    border: '1px solid var(--accent-primary)',
-                    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)',
+                    background: 'var(--bg-overlay)',
+                    border: '1px solid var(--accent)',
+                    boxShadow: 'var(--shadow-lg)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
+                    gap: 'var(--space-2)',
                     color: 'var(--text-primary)',
-                    opacity: 0.9,
+                    opacity: 0.95,
                     width: '200px',
                     pointerEvents: 'none',
                   }}
@@ -478,38 +485,45 @@ export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
       </div>
 
       {/* ─── Search + Trash Links ───────────────────── */}
-      <div style={{ padding: '4px 10px', borderTop: '1px solid var(--border-default)' }}>
+      <div style={{ padding: 'var(--space-1) var(--space-2)', borderTop: '1px solid var(--border)' }}>
         {onOpenSearch && (
           <button
             onClick={onOpenSearch}
             style={{
               width: '100%',
-              padding: '6px 12px',
-              fontSize: '13px',
+              padding: '6px var(--space-3)',
+              fontSize: 'var(--text-ui)',
               borderRadius: 'var(--radius-sm)',
               background: 'transparent',
-              color: 'var(--text-muted)',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: 'var(--space-2)',
               transition: 'var(--transition-fast)',
               border: 'none',
               marginBottom: '2px',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--bg-hover)';
+              e.currentTarget.style.color = 'var(--text-primary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }}
           >
-            <span style={{ fontSize: '14px' }}>🔍</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             <span style={{ flex: 1, textAlign: 'left' }}>Search</span>
             <kbd
               style={{
                 padding: '1px 5px',
-                fontSize: '10px',
+                fontSize: 'var(--text-caption)',
                 color: 'var(--text-muted)',
-                background: 'var(--bg-tertiary)',
-                borderRadius: '3px',
-                border: '1px solid var(--border-default)',
+                background: 'var(--bg-canvas)',
+                borderRadius: 'var(--radius-xs)',
+                border: '1px solid var(--border)',
+                fontFamily: 'var(--font-sans)',
               }}
             >
               ⌘K
@@ -517,25 +531,31 @@ export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
           </button>
         )}
         <button
-          onClick={() => navigate('/trash')}
+          onClick={() => { navigate('/trash'); onNavigate?.(); }}
           style={{
             width: '100%',
-            padding: '6px 12px',
-            fontSize: '13px',
+            padding: '6px var(--space-3)',
+            fontSize: 'var(--text-ui)',
             borderRadius: 'var(--radius-sm)',
             background: 'transparent',
-            color: 'var(--text-muted)',
+            color: 'var(--text-secondary)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: 'var(--space-2)',
             transition: 'var(--transition-fast)',
             border: 'none',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--bg-hover)';
+            e.currentTarget.style.color = 'var(--text-primary)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = 'var(--text-secondary)';
+          }}
         >
-          <span style={{ fontSize: '14px' }}>🗑</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           Trash
         </button>
       </div>
@@ -543,25 +563,25 @@ export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
       {/* ─── User Profile / Logout ─────────────────── */}
       <div
         style={{
-          padding: '12px 14px',
-          borderTop: '1px solid var(--border-default)',
+          padding: 'var(--space-3)',
+          borderTop: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
+          gap: 'var(--space-2)',
         }}
       >
         <div
           style={{
             width: '28px',
             height: '28px',
-            borderRadius: '50%',
+            borderRadius: 'var(--radius-full)',
             background: user?.avatarUrl
               ? `url(${user.avatarUrl}) center/cover`
-              : 'linear-gradient(135deg, #a78bfa, #7c3aed)',
+              : 'linear-gradient(135deg, var(--accent), var(--accent-active))',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '12px',
+            fontSize: 'var(--text-caption)',
             fontWeight: 700,
             color: '#fff',
             flexShrink: 0,
@@ -572,7 +592,7 @@ export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
         <span
           style={{
             flex: 1,
-            fontSize: '13px',
+            fontSize: 'var(--text-ui)',
             color: 'var(--text-secondary)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -591,14 +611,16 @@ export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
             cursor: 'pointer',
             fontSize: '14px',
             color: 'var(--text-muted)',
-            padding: '4px',
+            padding: 'var(--space-1)',
             borderRadius: 'var(--radius-sm)',
             transition: 'var(--transition-fast)',
+            display: 'flex',
+            alignItems: 'center',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--error)')}
           onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
         >
-          ↪
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
       </div>
     </aside>

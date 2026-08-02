@@ -100,7 +100,7 @@ export default function AppLayout() {
       style={{
         display: 'flex',
         minHeight: '100vh',
-        background: 'var(--bg-primary)',
+        background: 'var(--bg-canvas)',
       }}
     >
       {/* Mobile hamburger */}
@@ -109,23 +109,23 @@ export default function AppLayout() {
           onClick={() => setIsMobileSidebarOpen(true)}
           style={{
             position: 'fixed',
-            top: '12px',
-            left: '12px',
+            top: 'var(--space-3)',
+            left: 'var(--space-3)',
             zIndex: 60,
-            width: '36px',
-            height: '36px',
+            width: '34px',
+            height: '34px',
             borderRadius: 'var(--radius-sm)',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-default)',
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '18px',
             color: 'var(--text-primary)',
             cursor: 'pointer',
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
-          ☰
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
       )}
 
@@ -136,7 +136,8 @@ export default function AppLayout() {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
+            background: 'rgba(0, 0, 0, 0.6)',
+            backdropFilter: 'blur(4px)',
             zIndex: 70,
           }}
         />
@@ -169,7 +170,7 @@ export default function AppLayout() {
           flex: 1,
           minWidth: 0,
           overflow: 'auto',
-          ...(isMobile ? { paddingTop: '52px' } : {}),
+          ...(isMobile ? { paddingTop: '48px' } : {}),
         }}
       >
         {workspace ? (
@@ -184,20 +185,28 @@ export default function AppLayout() {
               alignItems: 'center',
               justifyContent: 'center',
               height: '100vh',
-              gap: '16px',
+              gap: 'var(--space-4)',
             }}
           >
+            {/* Branded loading */}
             <div
               style={{
-                width: '36px',
-                height: '36px',
-                border: '3px solid var(--border-default)',
-                borderTopColor: 'var(--accent-primary)',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
+                width: '32px',
+                height: '32px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'linear-gradient(135deg, var(--accent), var(--accent-active))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '15px',
+                fontWeight: 700,
+                color: '#fff',
+                animation: 'pulse-glow 2s ease-in-out infinite',
               }}
-            />
-            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
+            >
+              N
+            </div>
+            <span style={{ fontSize: 'var(--text-ui)', color: 'var(--text-muted)' }}>
               Loading Nestly…
             </span>
           </div>
