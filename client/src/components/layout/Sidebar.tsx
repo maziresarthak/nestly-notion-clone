@@ -18,7 +18,7 @@ import { usePageStore } from '../../stores/pageStore';
 import * as authApi from '../../api/auth';
 import * as pagesApi from '../../api/pages';
 import * as workspacesApi from '../../api/workspaces';
-import { buildTree, flattenTree, getDescendantIds } from '../../lib/utils';
+import { buildTree, getDescendantIds } from '../../lib/utils';
 import PageTreeItem from '../pages/PageTreeItem';
 import type { DropIndicator } from '../pages/PageTreeItem';
 
@@ -33,7 +33,7 @@ export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const workspace = usePageStore((s) => s.workspace);
   const pages = usePageStore((s) => s.pages);
-  const expandedIds = usePageStore((s) => s.expandedIds);
+
   const setWorkspace = usePageStore((s) => s.setWorkspace);
   const addPage = usePageStore((s) => s.addPage);
   const setPages = usePageStore((s) => s.setPages);
