@@ -50,10 +50,6 @@ export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
 
   // Build the tree from flat pages
   const tree = useMemo(() => buildTree(pages), [pages]);
-  const flatItems = useMemo(
-    () => flattenTree(tree, expandedIds),
-    [tree, expandedIds]
-  );
 
   // Track pointer position during drag
   useEffect(() => {
@@ -189,7 +185,7 @@ export default function Sidebar({ onOpenSearch, onNavigate }: SidebarProps) {
 
   // ─── DnD: drag end — compute new parentId + sortOrder ─
   const handleDragEnd = useCallback(
-    async (event: DragEndEvent) => {
+    async (_event: DragEndEvent) => {
       const draggedId = activeId;
       const indicator = dropIndicator;
 

@@ -81,7 +81,7 @@ export async function updatePage(
   pageId: string,
   data: {
     title?: string;
-    icon?: string;
+    icon?: string | null;
     content?: unknown;
     parentId?: string | null;
     sortOrder?: string;
